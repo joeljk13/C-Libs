@@ -30,6 +30,6 @@
 
 /* Allows for TODO messages in code, and fails if reached in execution during
  * debug mode */
-#define TODO(m) ASSERT(0, #m)
+#define TODO(m) ASSERT(0, "TODO - " #m)
 
 #endif

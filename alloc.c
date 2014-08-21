@@ -131,13 +131,13 @@ calloc_d(size_t n, size_t size, int line, const char *file)
 void *
 realloc_d(void *ptr, size_t n, int line, const char *file)
 {
-    TODO(Implement this function!);
+    TODO(Implement realloc_d);
 }
 
 void
 free_d(void *ptr, int line, const char *file)
 {
-
+    TODO(Implement free_d);
 }
 
 #endif
