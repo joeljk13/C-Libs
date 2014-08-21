@@ -1,22 +1,11 @@
 #ifndef NDEBUG
 
 #include "alloc.h"
+#include "main.h"
 
 #include <stdint.h>
 
 #define MIN_BUFFER_SIZE 8
-
-/* REQUIRES: GCC */
-#define assume(b) do { \
-    if (!(b)) { \
-        __builtin_unreachable(); \
-    } \
-} while (0)
-
-static inline is_nullptr(void *ptr)
-{
-    return __builtin_expect(ptr == NULL, 0);
-}
 
 struct mem_info {
     size_t n;
@@ -31,71 +20,118 @@ struct pointer {
     size_t bytes;
 };
 
-static struct pointer *pointers = NULL;
-
-static void
-add_pointer(void *ptr)
+static inline void
+mem_fail(int line, const char *file)
 {
 
+}
+
+static struct pointer *pointers = NULL;
+static size_t n_pointers = 0;
+
+static inline void
+add_pointer(void *ptr)
+{
+    if (IS_NULLPTR(pointers)) {
+        pointers = malloc(sizeof(*pointers));
+        if (IS_NULLPTR(pointers)) {
+            mem_fail(__LINE__, __FILE__);
+            return;
+        }
+        n_pointers = 1;
+    }
+    else if (n_pointer
 }
 
 static inline const char *
 get_buf(int len)
 {
-    char *str = malloc(len * sizeof(char));
-    if (str == NULL) {
+    char *str;
+
+    str = malloc(len * sizeof(*str));
+    if (IS_NULLPTR(str)) {
+        mem_fail(__LINE__, __FILE__);
         return NULL;
     }
+
     for (int i = 0; i < len; ++i) {
         str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
     }
+
     return str;
 }
 
 void *
 malloc_d(size_t n, int line, const char *file)
 {
-    const char *ptr = malloc(n);
-    if (ptr == NULL) {
+    char *ptr;
+    uintptr_t align;
+    size_t size, buf_size, remainder;
+    struct mem_info *mem_info;
+
+    ptr = malloc(n);
+    if (IS_NULLPTR(ptr)) {
+        mem_fail(line, file);
         return NULL;
     }
-    uintptr_t align = (uintptr_t)ptr;
+
+    align = (uintptr_t)ptr;
     align &= -align;
+    ASSUME(align != 0);
+    ASSUME(align & (align - 1) == 0);
     // align is now the number of bytes that malloc was alligned to - make sure
     // the returned value is also aligned to that
-    free(ptr);
-    size_t size = sizeof(mem_info) + n;
-    size_t buf_size = MIN_BUFFER_SIZE;
-    size_t remainder = (sizeof(mem_info) + buf_size) % align;
+
+    size = sizeof(mem_info) + n;
+    buf_size = MIN_BUFFER_SIZE;
+    remainder = (sizeof(mem_info) + buf_size) % align;
     if (remainder) {
         buf_size += remainder;
     }
     size += buf_size * 2;
-    ptr = malloc(size);
-    if (ptr == NULL) {
+
+    ptr = realloc(ptr, size);
+    if (IS_NULLPTR(ptr)) {
+        mem_fail(line, file);
         return NULL;
     }
-    struct mem_info *mem_info = ptr;
+
+    add_pointer(ptr);
+
+    mem_info = (struct mem_info *)ptr;
     mem_info->n = n;
     mem_info->line = line;
     mem_info->file = file;
     mem_info->pre_buf = get_buf(buf_size);
     mem_info->post_buf = get_buf(buf_size);
-    ptr += sizeof(mem_info) + BUFFER_SIZE;
-    add_pointer(ptr);
-    return mem_info + 1;
+
+    ptr += sizeof(mem_info);
+    memcpy(ptr, mem_info->pre_buf, buf_size);
+    memcpy(ptr + buf_size + n, mem_info->post_buf, buf_size);
+
+    return ptr + buf_size;
 }
 
 void *
 calloc_d(size_t n, size_t size, int line, const char *file)
 {
+    void *ptr;
 
+    ptr = malloc_d(n * size, line, file);
+    if (IS_NULLPTR(ptr)) {
+        // mem_fail already called in malloc_d
+        return NULL;
+    }
+
+    memset(ptr, 0, n * size);
+
+    return ptr;
 }
 
 void *
 realloc_d(void *ptr, size_t n, int line, const char *file)
 {
-
+    TODO(Implement this function!);
 }
 
 void
