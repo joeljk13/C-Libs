@@ -13,13 +13,13 @@
 /* assert(IMPLIES(a,b)) asserts that a implies b */
 #define IMPLIES(a,b) (!(a) || (b))
 
-/* A simple assertion */
+/* A simple assertion with a message */
 #define ASSERT(b,m) assert(((m), (b)))
 
 /* Tells the compiler to assume b. Useful for optimization. In debug mode,
  * automatically asserts that b is true */
 #define ASSUME(b) do { \
-    ASSERT(b); \
+    ASSERT(b, "assertion failed in ASSUME"); \
     if (!(b)) { \
         __builtin_unreachable(); \
     } \

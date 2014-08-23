@@ -15,16 +15,20 @@ struct mem_info {
     const char *post_buf;
 };
 
+static inline void
+mem_fail(size_t bytes, int line, const char *file)
+{
+    ASSUME(line >= 0);
+    ASSUME(!IS_NULLPTR(file));
+    fprintf(stderr, "Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u",
+            line, file, bytes);
+    exit(EXIT_FAILURE);
+}
+
 struct pointer {
     void *begin;
     size_t bytes;
 };
-
-static inline void
-mem_fail(int line, const char *file)
-{
-
-}
 
 static struct pointer *pointers = NULL;
 static size_t n_pointers = 0;
@@ -35,12 +39,14 @@ add_pointer(void *ptr)
     if (IS_NULLPTR(pointers)) {
         pointers = malloc(sizeof(*pointers));
         if (IS_NULLPTR(pointers)) {
+            // The line won't be exactly right, but it's close enough
             mem_fail(__LINE__, __FILE__);
             return;
         }
-        n_pointers = 1;
     }
-    else if (n_pointer
+    else if (n_pointers) {
+
+    }
 }
 
 static inline const char *
@@ -50,6 +56,7 @@ get_buf(int len)
 
     str = malloc(len * sizeof(*str));
     if (IS_NULLPTR(str)) {
+        // The line won't be exactly right, but it's close enough
         mem_fail(__LINE__, __FILE__);
         return NULL;
     }
