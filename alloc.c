@@ -3,7 +3,9 @@
 #include "alloc.h"
 #include "main.h"
 
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define MIN_BUFFER_SIZE 8
 
@@ -16,38 +18,69 @@ struct mem_info {
 };
 
 static inline void
+alloc_error(const char *format, ...)
+{
+    va_list vl;
+
+    va_start(vl, format);
+
+    vfprintf(stderr, format, vl);
+
+    va_end(vl);
+}
+
+// The line might not always be exactly right, but it should be close enough to
+// identify where the error occured
+static inline void
 mem_fail(size_t bytes, int line, const char *file)
 {
     ASSUME(line >= 0);
     ASSUME(!IS_NULLPTR(file));
 
-    fprintf(stderr, "Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u",
+    alloc_error("Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
             line, file, bytes);
-    exit(EXIT_FAILURE);
 }
 
-struct pointer {
-    void *begin;
-    size_t bytes;
-};
-
-static struct pointer *pointers = NULL;
+static char **pointers = NULL;
 static size_t n_pointers = 0;
 
-static inline void
+static inline int
 add_pointer(void *ptr)
 {
-    if (IS_NULLPTR(pointers)) {
-        pointers = malloc(sizeof(*pointers));
-        if (IS_NULLPTR(pointers)) {
-            // The line won't be exactly right, but it's close enough
-            mem_fail(__LINE__, __FILE__);
-            return;
-        }
-    }
-    else if (n_pointers) {
+    void *tmp;
 
+    tmp = realloc(pointers, n_pointers + 1);
+    if (IS_NULLPTR(tmp)) {
+        mem_fail(n_pointers + 1, __LINE__, __FILE__);
+        return 1;
     }
+
+    pointers = tmp;
+    pointers[n_pointers] = ptr;
+    ++n_pointers;
+
+    return 0;
+}
+
+static inline void *
+find_pointer(void *ptr)
+{
+    ASSUME(ptr != NULL);
+
+    for (int i = n_pointers - 1; i >= 0; --i) {
+        // Should this compare uintptr_t, or void *?
+        if ((uintptr_t)pointers[i] > (uintptr_t)ptr
+            || (uintptr_t)(pointers[i]
+                           + ((const struct mem_info *)pointers[i])->bytes)
+            > (uintptr_t)ptr) {
+            continue;
+        }
+
+        return pointers[i];
+    }
+
+    // pointer not found
+    return NULL;
 }
 
 static inline const char *
@@ -57,8 +90,7 @@ get_buf(int len)
 
     str = malloc(len * sizeof(*str));
     if (IS_NULLPTR(str)) {
-        // The line won't be exactly right, but it's close enough
-        mem_fail(__LINE__, __FILE__);
+        mem_fail(len * sizeof(*str), __LINE__, __FILE__);
         return NULL;
     }
 
@@ -72,14 +104,14 @@ get_buf(int len)
 void *
 malloc_d(size_t n, int line, const char *file)
 {
-    char *ptr;
+    char *ptr, tmp;
     uintptr_t align;
     size_t size, buf_size, remainder;
     struct mem_info *mem_info;
 
     ptr = malloc(n);
     if (IS_NULLPTR(ptr)) {
-        mem_fail(line, file);
+        mem_fail(n, line, file);
         return NULL;
     }
 
@@ -87,9 +119,9 @@ malloc_d(size_t n, int line, const char *file)
     align &= -align;
     ASSUME(align != 0);
     ASSUME(align & (align - 1) == 0);
+
     // align is now the number of bytes that malloc was alligned to - make sure
     // the returned value is also aligned to that
-
     size = sizeof(mem_info) + n;
     buf_size = MIN_BUFFER_SIZE;
     remainder = (sizeof(mem_info) + buf_size) % align;
@@ -98,13 +130,18 @@ malloc_d(size_t n, int line, const char *file)
     }
     size += buf_size * 2;
 
-    ptr = realloc(ptr, size);
-    if (IS_NULLPTR(ptr)) {
-        mem_fail(line, file);
+    tmp = realloc(ptr, size);
+    if (IS_NULLPTR(tmp)) {
+        free(ptr);
+        mem_fail(size, line, file);
         return NULL;
     }
+    ptr = tmp;
 
-    add_pointer(ptr);
+    if (add_pointer(ptr, size) != 0) {
+        free(ptr);
+        return NULL;
+    }
 
     mem_info = (struct mem_info *)ptr;
     mem_info->n = n;
@@ -126,12 +163,11 @@ calloc_d(size_t n, size_t size, int line, const char *file)
     void *ptr;
 
     ASSUME(line >= 0);
-    ASSUME(!IS_NULLPTR(file));
+    ASSUME(file != NULL);
 
     ptr = malloc_d(n * size, line, file);
-    ASSUME(!IS_NULLPTR(ptr));
     if (IS_NULLPTR(ptr)) {
-        // mem_fail already called in malloc_d
+        // mem_fail called in malloc_d
         return NULL;
     }
 
@@ -143,8 +179,24 @@ calloc_d(size_t n, size_t size, int line, const char *file)
 void *
 realloc_d(void *ptr, size_t n, int line, const char *file)
 {
+    void *new_ptr;
+
     ASSUME(line >= 0);
-    ASSUME(!IS_NULLPTR(file));
+    ASSUME(file != NULL);
+
+    if (ptr == NULL) {
+        return malloc_d(n, line, file);
+    }
+
+    if (n == 0) {
+        return NULL;
+    }
+
+    new_ptr = malloc_d(n, line, file);
+    if (IS_NULLPTR(new_ptr)) {
+        // mem_fail called in malloc_d
+        return NULL;
+    }
 
     TODO(Implement realloc_d);
 }
@@ -153,7 +205,7 @@ void
 free_d(void *ptr, int line, const char *file)
 {
     ASSUME(line >= 0);
-    ASSUME(!IS_NULLPTR(file));
+    ASSUME(file != NULL);
 
     if (ptr == NULL) {
         return;
