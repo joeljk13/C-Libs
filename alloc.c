@@ -20,6 +20,7 @@ mem_fail(size_t bytes, int line, const char *file)
 {
     ASSUME(line >= 0);
     ASSUME(!IS_NULLPTR(file));
+
     fprintf(stderr, "Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u",
             line, file, bytes);
     exit(EXIT_FAILURE);
@@ -124,7 +125,11 @@ calloc_d(size_t n, size_t size, int line, const char *file)
 {
     void *ptr;
 
+    ASSUME(line >= 0);
+    ASSUME(!IS_NULLPTR(file));
+
     ptr = malloc_d(n * size, line, file);
+    ASSUME(!IS_NULLPTR(ptr));
     if (IS_NULLPTR(ptr)) {
         // mem_fail already called in malloc_d
         return NULL;
@@ -138,12 +143,22 @@ calloc_d(size_t n, size_t size, int line, const char *file)
 void *
 realloc_d(void *ptr, size_t n, int line, const char *file)
 {
+    ASSUME(line >= 0);
+    ASSUME(!IS_NULLPTR(file));
+
     TODO(Implement realloc_d);
 }
 
 void
 free_d(void *ptr, int line, const char *file)
 {
+    ASSUME(line >= 0);
+    ASSUME(!IS_NULLPTR(file));
+
+    if (ptr == NULL) {
+        return;
+    }
+
     TODO(Implement free_d);
 }
 

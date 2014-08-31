@@ -1,16 +1,26 @@
 #ifndef ARGS_H_
 #define ARGS_H_ 1
 
-void
-init_args(int argc, char **argv);
+enum arg_type {
+    ARG_STRING,
+    ARG_INTEGER,
+    ARG_REAL,
+    ARG_BOOL
+};
 
 int
-is_arg(const char *arg);
-
-const char *
-get_arg(const char *arg);
+register_arg(const char *name, const char *abbrev, enum arg_type type);
 
 void
-free_args(void);
+args_init(int argc, char **argv);
+
+int
+is_arg(const char *name);
+
+void *
+get_arg(const char *name);
+
+void
+args_free(void);
 
 #endif
