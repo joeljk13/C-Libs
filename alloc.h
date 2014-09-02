@@ -5,11 +5,11 @@
 
 #ifndef NDEBUG
 
-void
-init_alloc(void);
+// There's nothing to initialize!
+#define alloc_init()
 
 void
-free_alloc(void);
+alloc_free(void);
 
 void *
 malloc_d(size_t n, int line, const char *file);
@@ -30,8 +30,8 @@ free_d(void *ptr, int line, const char *file);
 
 #else
 
-#define init_alloc()
-#define free_alloc()
+#define alloc_init()
+#define alloc_free()
 
 #define MALLOC(n) malloc(n)
 #define CALLOC(n,s) calloc((n), (s))

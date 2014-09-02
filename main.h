@@ -25,6 +25,9 @@
     } \
 } while (0)
 
+/* Use ASSUME(UNREACHABLE) to make unreachable code */
+#define UNREACHABLE 0
+
 /* Checks whether p is a null pointer for the purposes of error checking */
 #define IS_NULLPTR(p) (__builtin_expect((p) == NULL, 0))
 
