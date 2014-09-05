@@ -3,36 +3,28 @@
 
 #include <assert.h>
 
-/* Swaps a and b, which are of type T */
-#define SWAP(a,b,T) do { \
-    T tmp_ = (b); \
-    (b) = (a); \
-    (a) = tmp_; \
-} while (0)
-
-/* assert(IMPLIES(a,b)) asserts that a implies b */
+/* Says that a implies b. Can be used with ASSERT or ASSUME */
 #define IMPLIES(a,b) (!(a) || (b))
 
 /* A simple assertion with a message */
 #define ASSERT(b,m) assert(((m), (b)))
+
+#define ASSUME_UNREACHABLE() (__builtin_unreachable())
 
 /* Tells the compiler to assume b. Useful for optimization. In debug mode,
  * automatically asserts that b is true */
 #define ASSUME(b) do { \
     ASSERT(b, "assertion failed in ASSUME"); \
     if (!(b)) { \
-        __builtin_unreachable(); \
+        ASSUME_UNREACHABLE(); \
     } \
 } while (0)
-
-/* Use ASSUME(UNREACHABLE) to make unreachable code */
-#define UNREACHABLE 0
 
 /* Checks whether p is a null pointer for the purposes of error checking */
 #define IS_NULLPTR(p) (__builtin_expect((p) == NULL, 0))
 
 /* Allows for TODO messages in code, and fails if reached in execution during
  * debug mode */
-#define TODO(m) ASSERT(0, "TODO - " #m)
+#define TODO(m) ASSERT(0, TODO - m)
 
 #endif

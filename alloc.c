@@ -3,6 +3,7 @@
 #include "alloc.h"
 #include "main.h"
 
+#include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -42,11 +43,11 @@ mem_fail(size_t bytes, int line, const char *file)
             line, file, bytes);
 }
 
-static char **pointers = NULL;
+static const char **pointers = NULL;
 static size_t n_pointers = 0;
 
 static inline int
-add_pointer(void *ptr)
+add_pointer(const void *ptr)
 {
     void *tmp;
 
@@ -63,42 +64,30 @@ add_pointer(void *ptr)
     return 0;
 }
 
-// The 1 pointer cache helps for functions that call both find_pointer and
-// remove_pointer; otherwise there's redundant searching
-static void *find_pointer_cache = NULL;
-
-static inline void *
-find_pointer(void *ptr)
+static inline const void *
+find_pointer(const void *ptr)
 {
+    uintptr_t pointer;
+
     ASSUME(ptr != NULL);
 
-#define TMP_FIND_POINTER_CMP(p) (uintptr_t)(p) > (uintptr_t)ptr \
-    || (uintptr_t)((p) + ((const struct mem_info *)(p))->bytes) \
-    > (uintptr_t)ptr
-
-    if (!TMP_FIND_POINTER_CMP(find_pointer_cache)) {
-        return find_pointer_cache;
-    }
+    pointer = (uintptr_t)ptr;
 
     for (int i = n_pointers - 1; i >= 0; --i) {
-        // Should this compare uintptr_t, or void *?
-        if (TMP_FIND_POINTER_CMP(pointers[i])) {
+
+        if () {
             continue;
         }
 
-        find_pointer_cache = pointers[i];
-
         return pointers[i];
     }
-
-#undef TMP_FIND_POINTER_CMP
 
     // pointer not found
     return NULL;
 }
 
 static inline void
-remove_pointer(void *ptr)
+remove_pointer(const void *ptr)
 {
     void *tmp;
 
@@ -117,19 +106,24 @@ remove_pointer(void *ptr)
         }
     }
 
-    ASSUME(UNREACHABLE);
+    ASSUME_UNREACHABLE();
 }
 
-void
-alloc_init(void)
-{ }
+// void alloc_init(void) does nothing and is implemented as a macro
 
 void alloc_free(void)
 {
     for (int i = n_pointers - 1; i >= 0; --i) {
-        TODO("Add more!");
-        alloc_error("Memory not freed!");
+        const struct mem_info *mem_info;
+
+        mem_info = (const struct mem_info *)pointers[i];
+
+        alloc_error("Memory not freed!\n\tLine: %i\n\tFile: %s\n\t"
+                    "Bytes: %u\n\tPointer: %p\n", mem_info->line,
+                    mem_info->file, mem_info->n, pointers[i]);
+        free(pointers[i]);
     }
+    free(pointers);
 }
 
 static inline const char *
@@ -153,12 +147,12 @@ get_buf(int len)
 void *
 malloc_d(size_t n, int line, const char *file)
 {
-    char *ptr, tmp;
+    char *ptr, *tmp;
     uintptr_t align;
     size_t size, buf_size, remainder;
     struct mem_info *mem_info;
 
-    if (n == NULL) {
+    if (n == 0) {
         return NULL;
     }
 
@@ -171,13 +165,13 @@ malloc_d(size_t n, int line, const char *file)
     align = (uintptr_t)ptr;
     align &= -align;
     ASSUME(align != 0);
-    ASSUME(align & (align - 1) == 0);
+    ASSUME((align & (align - 1)) == 0);
 
     // align is now the number of bytes that malloc was alligned to - make sure
     // the returned value is also aligned to that
-    size = sizeof(mem_info) + n;
+    size = sizeof(struct mem_info) + n;
     buf_size = MIN_BUFFER_SIZE;
-    remainder = (sizeof(mem_info) + buf_size) % align;
+    remainder = (sizeof(struct mem_info) + buf_size) % align;
     if (remainder) {
         buf_size += remainder;
     }
@@ -191,7 +185,7 @@ malloc_d(size_t n, int line, const char *file)
     }
     ptr = tmp;
 
-    if (add_pointer(ptr, size) != 0) {
+    if (add_pointer(ptr) != 0) {
         free(ptr);
         return NULL;
     }
@@ -203,9 +197,11 @@ malloc_d(size_t n, int line, const char *file)
     mem_info->pre_buf = get_buf(buf_size);
     mem_info->post_buf = get_buf(buf_size);
 
-    ptr += sizeof(mem_info);
+    ptr += sizeof(struct mem_info);
     memcpy(ptr, mem_info->pre_buf, buf_size);
     memcpy(ptr + buf_size + n, mem_info->post_buf, buf_size);
+
+    printf("%p %p %p\n", mem_info, ptr, ptr + buf_size);
 
     return ptr + buf_size;
 }
@@ -232,7 +228,8 @@ calloc_d(size_t n, size_t size, int line, const char *file)
 void *
 realloc_d(void *ptr, size_t n, int line, const char *file)
 {
-    char *old_ptr, new_ptr;
+    const char *old_ptr;
+    char *new_ptr;
 
     ASSUME(line >= 0);
     ASSUME(file != NULL);
@@ -255,7 +252,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     }
 
     if (ptr != old_ptr + sizeof(struct mem_info)
-        + strlen((const struct mem_info *)old_ptr->pre_buf)) {
+        + strlen(((const struct mem_info *)old_ptr)->pre_buf)) {
         alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n\t"
                     "Pointer: %p\n\tProblem: Pointer shifted",
                     line, file, ptr);
@@ -270,13 +267,13 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 
 #define TMP_REALLOC_D_MIN(a,b) ((a) < (b) ? (a) : (b))
 
-    memcpy(new_ptr, ptr, TMP_REALLOC_D_MIN((const struct mem_info *)old_ptr->n,
+    memcpy(new_ptr, ptr, TMP_REALLOC_D_MIN(((const struct mem_info *)old_ptr)->n,
                                            n));
 
 #undef TMP_REALLOC_D_MIN
 
     remove_pointer(old_ptr);
-    add_pointer(new_pointer);
+    add_pointer(new_ptr);
 
     free(old_ptr);
 
@@ -286,7 +283,10 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 void
 free_d(void *ptr, int line, const char *file)
 {
-    void *pointer;
+    const void *pointer;
+    const char *p;
+    const struct mem_info *mem_info;
+    size_t pre_len, post_len;
 
     ASSUME(line >= 0);
     ASSUME(file != NULL);
@@ -298,24 +298,60 @@ free_d(void *ptr, int line, const char *file)
     pointer = find_pointer(ptr);
 
     if (pointer == NULL) {
-        alloc_error("Freeing invalid pointer!\n\tLine: %i\n\tFile: %s\n\t"
-                    "Pointer: %p\n\tProblem: Pointer not allocated",
+        alloc_error("Freeing unallocated pointer!\n\tLine: %i\n\tFile: %s\n\t"
+                    "Pointer: %p\n",
                     line, file, ptr);
-        return NULL;
+        return;
     }
 
-    if (ptr != pointer + sizeof(struct mem_info)
-        + strlen((const struct mem_info *)pointer->pre_buf)) {
-        alloc_error("Freeing invalid pointer!\n\tLine: %i\n\tFile: %s\n\t"
-                    "Pointer: %p\n\tProblem: Pointer shifted",
-                    line, file, ptr);
-        return NULL;
+    mem_info = (const struct mem_info *)pointer;
+    p = (const char *)pointer + sizeof(struct mem_info);
+    pre_len = strlen(mem_info->pre_buf);
+
+    if (ptr != p + pre_len) {
+        alloc_error("Freeing shifted pointer!\n"
+                    "\tLine allocated: %i\n\tFile allocated: %s\n"
+                    "\tLine freed: %i\n\tFile freed: %s\n"
+                    "\tBytes: %u\n"
+                    "\tPointer: %p\n\tOffset: %i\n",
+                    mem_info->line, mem_info->file, line, file, mem_info->n,
+                    p + pre_len, (int)((const char *)ptr - (p + pre_len)));
+        remove_pointer(pointer);
+        free(pointer);
+        return;
     }
 
-    TODO("Check for buffer overrun");
+    for (int i = pre_len - 1; i >= 0; --i) {
+        if (p[i] != mem_info->pre_buf[i]) {
+            alloc_error("Memory overflow!\n"
+                        "\tLine allocated: %i\n\tFile allocated: %s\n"
+                        "\tLine freed: %i\n\tFile freed: %s\n"
+                        "\tOld value: %i\n\tNew value: %i\n"
+                        "\tBytes: %u\n\tOverwriten byte: %i\n\tPointer: %p\n",
+                        mem_info->line, mem_info->file, line, file,
+                        (int)mem_info->pre_buf[i], (int)p[i], mem_info->n,
+                        i - (int)pre_len, ptr);
+        }
+    }
+
+    post_len = strlen(mem_info->post_buf);
+    p += pre_len + mem_info->n;
+
+    for (int i = 0; i < post_len; ++i) {
+        if (p[i] != mem_info->post_buf[i]) {
+            alloc_error("Memory overflow!\n"
+                        "\tLine allocated: %i\n\tFile allocated: %s\n"
+                        "\tLine freed: %i\n\tFile freed: %s\n"
+                        "\tOld value: %i\n\tNew value: %i\n"
+                        "\tBytes: %u\n\tOverwriten byte: %i\n"
+                        "\tPointer: %p\n",
+                        mem_info->line, mem_info->file, line, file,
+                        (int)mem_info->post_buf[i], (int)p[i], mem_info->n,
+                        mem_info->n + i, ptr);
+        }
+    }
 
     remove_pointer(pointer);
-
     free(pointer);
 }
 

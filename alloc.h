@@ -26,7 +26,7 @@ free_d(void *ptr, int line, const char *file);
 #define MALLOC(n) malloc_d((n), __LINE__, __FILE__)
 #define CALLOC(n,s) calloc_d((n), (s), __LINE__, __FILE__)
 #define REALLOC(p,s) realloc_d((p), (s), __LINE__, __FILE__)
-#define FREE(p) free_d(p, __LINE__, __FILE__)
+#define FREE(p) free_d((void *)(p), __LINE__, __FILE__)
 
 #else
 
@@ -36,7 +36,7 @@ free_d(void *ptr, int line, const char *file);
 #define MALLOC(n) malloc(n)
 #define CALLOC(n,s) calloc((n), (s))
 #define REALLOC(p,s) realloc((p), (s))
-#define FREE(p) free(p)
+#define FREE(p) free((void *)(p))
 
 #endif
 
