@@ -9,14 +9,17 @@
 /* A simple assertion with a message */
 #define ASSERT(b,m) assert(((m), (b)))
 
-#define ASSUME_UNREACHABLE() (__builtin_unreachable())
+#define ASSUME_UNREACHABLE() do { \
+    ASSERT(0, assertion failed in ASSUME_UNREACHABLE); \
+    __builtin_unreachable(); \
+} while (0)
 
 /* Tells the compiler to assume b. Useful for optimization. In debug mode,
  * automatically asserts that b is true */
 #define ASSUME(b) do { \
-    ASSERT(b, "assertion failed in ASSUME"); \
+    ASSERT(b, assertion failed in ASSUME); \
     if (!(b)) { \
-        ASSUME_UNREACHABLE(); \
+        __builtin_unreachable(); \
     } \
 } while (0)
 
