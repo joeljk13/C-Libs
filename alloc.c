@@ -70,7 +70,7 @@ add_ptr_info(const void *ptr, size_t bytes)
     return 0;
 }
 
-static inline struct ptr_info
+static inline const void *
 find_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
@@ -81,10 +81,9 @@ find_ptr_info(const void *ptr)
              p != ptr_infos[i].ptr + ptr_infos[i].bytes;
              ++p) {
             if (p == ptr) {
-                return ptr_infos[i];
+                return ptr_infos[i].ptr;
             }
         }
-        return ptr_infos[i];
     }
 
     // pointer not found
@@ -104,12 +103,18 @@ remove_ptr_info(const void *ptr)
             // last ptr_info and remove the last
             ptr_infos[i] = ptr_infos[--n_ptr_infos];
 
-            tmp = realloc(ptr_infos, n_ptr_infos);
-            if (IS_NULLPTR(tmp)) {
-                mem_fail(n_ptr_infos, __LINE__, __FILE__);
-                return;
+            if (n_ptr_infos == 0) {
+                free(ptr_infos);
+                ptr_infos = NULL;
             }
-            ptr_infos = tmp;
+            else {
+                tmp = realloc(ptr_infos, n_ptr_infos);
+                if (IS_NULLPTR(tmp)) {
+                    mem_fail(n_ptr_infos, __LINE__, __FILE__);
+                    return;
+                }
+                ptr_infos = tmp;
+            }
 
             return;
         }
@@ -126,12 +131,12 @@ alloc_free(void)
     for (int i = n_ptr_infos - 1; i >= 0; --i) {
         const struct mem_info *mem_info;
 
-        mem_info = (const struct mem_info *)ptr_infos[i];
+        mem_info = (const struct mem_info *)ptr_infos[i].ptr;
 
         alloc_error("Memory not freed!\n\tLine: %i\n\tFile: %s\n\t"
                     "Bytes: %u\n\tPointer: %p\n", mem_info->line,
                     mem_info->file, mem_info->bytes, ptr_infos[i]);
-        free(ptr_infos[i]);
+        free((void *)ptr_infos[i].ptr);
     }
 
     free(ptr_infos);
@@ -141,14 +146,17 @@ static inline const char *
 get_buf(size_t len)
 {
     char *str;
+    size_t size;
 
-    str = malloc(len * sizeof(*str));
+    size = (len + 1) * sizeof(*str);
+
+    str = malloc(size);
     if (IS_NULLPTR(str)) {
-        mem_fail(len * sizeof(*str), __LINE__, __FILE__);
+        mem_fail(size, __LINE__, __FILE__);
         return NULL;
     }
 
-    for (int i = len - 1; i >= 0; --i) {
+    for (int i = 0; i < len; ++i) {
         str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
     }
 
@@ -212,8 +220,6 @@ malloc_d(size_t n, int line, const char *file)
     memcpy(ptr, mem_info->pre_buf, buf_size);
     memcpy(ptr + buf_size + n, mem_info->post_buf, buf_size);
 
-    printf("%p %p %p\n", mem_info, ptr, ptr + buf_size);
-
     return ptr + buf_size;
 }
 
@@ -250,7 +256,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return malloc_d(n, line, file);
     }
 
-    if (n == NULL) {
+    if (n == 0) {
         return NULL;
     }
 
@@ -282,7 +288,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     memcpy(new_ptr, ptr, mem_info->bytes < n ? mem_info->bytes : n);
 
     remove_ptr_info(old_ptr);
-    free(old_ptr);
+    free((void *)old_ptr);
 
     return new_ptr;
 }
@@ -320,11 +326,11 @@ free_d(const void *ptr, int line, const char *file)
                     "\tLine allocated: %i\n\tFile allocated: %s\n"
                     "\tLine freed: %i\n\tFile freed: %s\n"
                     "\tBytes: %u\n"
-                    "\tPointer: %p\n\tOffset: %i\n",
+                    "\tPointer: %p\n\tOffset: %td\n",
                     mem_info->line, mem_info->file, line, file, mem_info->bytes,
-                    p + pre_len, (int)((const char *)ptr - (p + pre_len)));
+                    p + pre_len, (const char *)ptr - (p + pre_len));
         remove_ptr_info(ptr_info);
-        free(ptr_info);
+        free((void *)ptr_info);
         return;
     }
 
@@ -360,7 +366,7 @@ free_d(const void *ptr, int line, const char *file)
     }
 
     remove_ptr_info(ptr_info);
-    free(ptr_info);
+    free((void *)ptr_info);
 }
 
 #endif

@@ -12,10 +12,6 @@ int main(int argc, char *argv[])
 
     alloc_init();
 
-    ptr = MALLOC(1);
-
-    FREE(ptr);
-
     alloc_free();
     return 0;
 }
