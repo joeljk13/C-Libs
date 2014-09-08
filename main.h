@@ -24,10 +24,15 @@
 } while (0)
 
 /* Checks whether p is a null pointer for the purposes of error checking */
-#define IS_NULLPTR(p) (__builtin_expect((p) == NULL, 0))
+#define ERR_IS_NULLPTR(p) (__builtin_expect((p) == NULL, 0))
 
 /* Allows for TODO messages in code, and fails if reached in execution during
  * debug mode */
 #define TODO(m) ASSERT(0, TODO - m)
+
+typedef enum {
+    ERR_MEM = 1,
+    ERR_ARGS
+} err_t;
 
 #endif
