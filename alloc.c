@@ -13,7 +13,7 @@
 
 struct mem_info {
     size_t bytes;
-    int line;
+    unsigned int line;
     const char *file;
     const char *pre_buf;
     const char *post_buf;
@@ -34,9 +34,8 @@ alloc_error(const char *format, ...)
 // The line might not always be exactly right, but it should be close enough to
 // identify where the error occured
 static inline void
-mem_fail(size_t bytes, int line, const char *file)
+mem_fail(size_t bytes, unsigned int line, const char *file)
 {
-    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     alloc_error("Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
@@ -56,10 +55,13 @@ add_ptr_info(const void *ptr, size_t bytes)
 {
     void *tmp;
 
+    ASSUME(ptr != NULL);
+    ASSUME(bytes > 0);
+
     tmp = realloc(ptr_infos, n_ptr_infos + 1);
     if (ERR_IS_NULLPTR(tmp)) {
         mem_fail(n_ptr_infos + 1, __LINE__, __FILE__);
-        return 1;
+        return -1;
     }
 
     ptr_infos = tmp;
@@ -136,6 +138,7 @@ alloc_free(void)
         alloc_error("Memory not freed!\n\tLine: %i\n\tFile: %s\n\t"
                     "Bytes: %u\n\tPointer: %p\n", mem_info->line,
                     mem_info->file, mem_info->bytes, ptr_infos[i]);
+
         free((void *)ptr_infos[i].ptr);
     }
 
@@ -147,6 +150,8 @@ get_buf(size_t len)
 {
     char *str;
     size_t size;
+
+    ASSUME(len >= MIN_BUFFER_SIZE);
 
     size = (len + 1) * sizeof(*str);
 
@@ -164,7 +169,7 @@ get_buf(size_t len)
 }
 
 void *
-malloc_d(size_t n, int line, const char *file)
+malloc_d(size_t n, unsigned int line, const char *file)
 {
     char *ptr, *tmp;
     uintptr_t align;
@@ -224,11 +229,10 @@ malloc_d(size_t n, int line, const char *file)
 }
 
 void *
-calloc_d(size_t n, size_t size, int line, const char *file)
+calloc_d(size_t n, size_t size, unsigned int line, const char *file)
 {
     void *ptr;
 
-    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     ptr = malloc_d(n * size, line, file);
@@ -243,13 +247,12 @@ calloc_d(size_t n, size_t size, int line, const char *file)
 }
 
 void *
-realloc_d(void *ptr, size_t n, int line, const char *file)
+realloc_d(void *ptr, size_t n, unsigned int line, const char *file)
 {
     const char *old_ptr;
     char *new_ptr;
     const struct mem_info *mem_info;
 
-    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     if (ptr == NULL) {
@@ -294,14 +297,13 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 }
 
 void
-free_d(const void *ptr, int line, const char *file)
+free_d(const void *ptr, unsigned int line, const char *file)
 {
     const char *ptr_info;
     const char *p;
     const struct mem_info *mem_info;
     size_t pre_len, post_len;
 
-    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     if (ptr == NULL) {

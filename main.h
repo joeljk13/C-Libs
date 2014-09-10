@@ -30,9 +30,4 @@
  * debug mode */
 #define TODO(m) ASSERT(0, TODO - m)
 
-typedef enum {
-    ERR_MEM = 1,
-    ERR_ARGS
-} err_t;
-
 #endif

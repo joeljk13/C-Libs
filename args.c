@@ -10,33 +10,14 @@
 struct arg {
     const char *name;
     const char *value;
-    int is_found;
-    int is_registered;
+    enum arg_type type;
 };
 
 static int argc_ = 0;
-static char **argv_ = NULL;
+static const char **argv_ = NULL;
 
 static int n_args = 0;
 static struct arg *args = NULL;
-
-void
-args_init(int argc, char **argv)
-{
-    argc_ = argc;
-    argv_ = argv;
-
-    args = MALLOC(argc_ * sizeof(*args));
-}
-
-void
-args_free(void)
-{
-    for (int i = n_args - 1; i >= 0; --i) {
-        FREE(args[i]);
-    }
-    FREE(args);
-}
 
 static int
 register_arg(const char *name, const char *abbrev, enum arg_type type)
@@ -66,7 +47,7 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
         FREE(arg_l);
         FREE(arg_s);
 
-        return 3;
+        return -1;
     }
 
     memcpy(full_name, "--", name_prefix_len);
@@ -74,11 +55,9 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     memcpy(full_abbrev, "-", abbrev_prefix_len);
     memcpy(full_abbrev + abbrev_prefix_len, abbrev, abbrev_len);
 
-    for (int i = argc_ - 1; i > 0; --i) {
+    for (int i = 1; i < argc_; ++i) {
         if (strcmp(argv_[i], full_name) || strcmp(argv_[i], full_abbrev)) {
-            struct arg *arg;
-
-            arg = MALLOC(sizeof(*arg));
+            args[n_args++] = (struct arg){full_name, full_abbrev, type};
         }
     }
 
@@ -86,17 +65,34 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
 }
 
 int
-args_set_format(const char *format)
+args_init(unsigned int argc, const char **argv, const char *format)
 {
-    if (ERR_IS_NULLPTR(format)) {
-        return 1;
+    ASSUME(argc >= 1);
+    ASSUME(argv != NULL);
+
+    // Ignore the name of the process itself
+    argc_ = argc - 1;
+    argv_ = argv + 1;
+
+    // Some slots may be left empty, but no more than argc_ slots will ever be
+    // used. argc_ is probably small enough that a little extra memory
+    // shouldn't matter
+    args = MALLOC(argc_ * sizeof(*args));
+    if (ERR_IS_NULLPTR(args)) {
+        return -1;
     }
+
+    return 0;
+}
+
+void
+args_free(void)
+{
+    FREE(args);
 }
 
 int
 is_arg(const char *arg)
 {
-    if (ERR_IS_NULLPTR(arg)) {
-        return 0;
-    }
+    ASSUME(arg != NULL);
 }
