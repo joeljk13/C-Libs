@@ -22,4 +22,7 @@ stack_pop(struct stack *stack);
 void *
 stack_peek(struct stack *stack);
 
+int
+stack_is_empty(struct stack *stack);
+
 #endif

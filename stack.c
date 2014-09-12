@@ -1,6 +1,8 @@
 #include "stack.h"
 #include "main.h"
 
+#include "alloc.h"
+
 struct stack_elem {
     struct stack_elem *prev;
     void *data;
@@ -17,7 +19,7 @@ stack_init(struct stack *stack)
 void
 stack_free(struct stack *stack)
 {
-    struct stack_elem *to_free, *prev;
+    struct stack_elem *prev;
 
     ASSUME(stack != NULL);
 
@@ -25,14 +27,13 @@ stack_free(struct stack *stack)
         return;
     }
 
-    to_free = stack->bottom;
-    prev = to_free->prev;
-    free(to_free);
+    prev = stack->bottom->prev;
+    FREE(stack->bottom);
 
     while (prev != NULL) {
-        to_free = prev;
-        prev = to_free->prev;
-        free(to_free);
+        stack->bottom = prev;
+        prev = prev->prev;
+        FREE(stack->bottom);
     }
 }
 
@@ -43,7 +44,7 @@ stack_push(struct stack *stack, void *data)
 
     ASSUME(stack != NULL);
 
-    elem = malloc(sizeof(*elem));
+    elem = MALLOC(sizeof(*elem));
     if (ERR_IS_NULLPTR(elem)) {
         return -1;
     }
@@ -62,17 +63,14 @@ stack_pop(struct stack *stack)
     void *data;
 
     ASSUME(stack != NULL);
-
-    if (stack->bottom == NULL) {
-        return NULL;
-    }
+    ASSUME(!stack_is_empty(stack));
 
     elem = stack->bottom;
     stack->bottom = elem->prev;
 
     data = elem->data;
 
-    free(elem);
+    FREE(elem);
 
     return data;
 }
@@ -81,6 +79,15 @@ void *
 stack_peek(struct stack *stack)
 {
     ASSUME(stack != NULL);
+    ASSUME(!stack_is_empty(stack));
 
-    return stack->bottom == NULL ? NULL : stack->bottom->data;
+    return stack->bottom->data;
+}
+
+int
+stack_is_empty(struct stack *stack)
+{
+    ASSUME(stack != NULL);
+
+    return stack->bottom == NULL;
 }

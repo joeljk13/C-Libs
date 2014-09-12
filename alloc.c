@@ -9,7 +9,22 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MIN_BUFFER_SIZE 64
+static size_t alloc_min_buffer_size = 32;
+
+void
+alloc_set_min_buffer_size(size_t size)
+{
+    if (size <= alloc_min_buffer_size) {
+        return;
+    }
+
+    // Round up to the next power of 2
+    --size;
+    for (size_t i = 1; i < sizeof(size) * CHAR_BIT; i *= 2) {
+        size |= size >> i;
+    }
+    alloc_min_buffer_size = size + 1;
+}
 
 struct mem_info {
     size_t bytes;
@@ -151,7 +166,7 @@ get_buf(size_t len)
     char *str;
     size_t size;
 
-    ASSUME(len >= MIN_BUFFER_SIZE);
+    ASSUME(len >= alloc_min_buffer_size);
 
     size = (len + 1) * sizeof(*str);
 
@@ -194,7 +209,7 @@ malloc_d(size_t n, unsigned int line, const char *file)
     // align is now the number of bytes that malloc was alligned to - make sure
     // the returned value is also aligned to that
     size = sizeof(struct mem_info) + n;
-    buf_size = MIN_BUFFER_SIZE;
+    buf_size = alloc_min_buffer_size;
     remainder = (sizeof(struct mem_info) + buf_size) % align;
     if (remainder) {
         buf_size += remainder;
