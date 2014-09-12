@@ -2,10 +2,10 @@
 #define ARGS_H_ 1
 
 enum arg_type {
+    ARG_BOOL,
     ARG_STRING,
     ARG_INTEGER,
-    ARG_REAL,
-    ARG_BOOL
+    ARG_REAL
 };
 
 /* Initializes the args. Returns 0 on success, -1 on failure. */

@@ -9,8 +9,9 @@
 
 struct arg {
     const char *name;
-    const char *value;
+    void *value;
     enum arg_type type;
+    int is_found;
 };
 
 static int argc_ = 0;
@@ -22,7 +23,6 @@ static struct arg *args = NULL;
 static int
 register_arg(const char *name, const char *abbrev, enum arg_type type)
 {
-    struct arg *arg_l, *arg_s;
     char *full_name, *full_abbrev;
     size_t name_len, name_prefix_len, abbrev_len, abbrev_prefix_len;
 
@@ -38,14 +38,9 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     full_abbrev = (abbrev == NULL ? NULL :
                    MALLOC((abbrev_len + abbrev_prefix_len)
                           * sizeof(*full_abbrev)));
-    arg_l = MALLOC(sizeof(*arg_l));
-    arg_s = MALLOC(sizeof(*arg_s));
-    if (ERR_IS_NULLPTR(full_name) || ERR_IS_NULLPTR(full_abbrev) || ERR_IS_NULLPTR(arg_l)
-        || ERR_IS_NULLPTR(arg_s)) {
+    if (ERR_IS_NULLPTR(full_name) || ERR_IS_NULLPTR(full_abbrev)) {
         FREE(full_name);
         FREE(full_abbrev);
-        FREE(arg_l);
-        FREE(arg_s);
 
         return -1;
     }
@@ -55,13 +50,15 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     memcpy(full_abbrev, "-", abbrev_prefix_len);
     memcpy(full_abbrev + abbrev_prefix_len, abbrev, abbrev_len);
 
-    for (int i = 1; i < argc_; ++i) {
-        if (strcmp(argv_[i], full_name) || strcmp(argv_[i], full_abbrev)) {
-            args[n_args++] = (struct arg){full_name, full_abbrev, type};
-        }
-    }
+    args[n_args++] = (struct arg){full_name, full_abbrev, type, 0};
 
     return 0;
+}
+
+int
+parse_format(const char *format)
+{
+
 }
 
 int
@@ -82,6 +79,27 @@ args_init(unsigned int argc, const char **argv, const char *format)
         return -1;
     }
 
+    if (format == NULL) {
+        // There was no format specified, so use the raw args. Basically 
+        // register each arg that exists and say that it was found.
+        for (int i = 0; i < argc_; ++i) {
+            args[i] = (struct arg){argv[i], NULL, ARG_BOOL, 1};
+        }
+
+        return 0;
+    }
+    else {
+        // This will probably 0 args, but just in case do this explicity
+        // instead of using CALLOC or MALLOC + memset
+        for (int i = 0; i < argc_; ++i) {
+            args = (struct arg){NULL, NULL, ARG_BOOL, 0};
+        }
+
+        if (parse_format(format) != 0) {
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -92,7 +110,13 @@ args_free(void)
 }
 
 int
-is_arg(const char *arg)
+is_arg(const char *name)
 {
-    ASSUME(arg != NULL);
+    size_t name_prefix_len;
+
+    ASSUME(name != NULL);
+
+    name_prefix_len = (*name != '-') * 2;
+
+    TODO(Implement is_arg);
 }

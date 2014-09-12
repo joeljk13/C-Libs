@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MIN_BUFFER_SIZE 8
+#define MIN_BUFFER_SIZE 64
 
 struct mem_info {
     size_t bytes;
