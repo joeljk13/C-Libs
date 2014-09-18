@@ -45,7 +45,7 @@ stack_push(struct stack *stack, void *data)
     ASSUME(stack != NULL);
 
     elem = MALLOC(sizeof(*elem));
-    if (ERR_IS_NULLPTR(elem)) {
+    if (ERR(elem == NULL)) {
         return -1;
     }
 

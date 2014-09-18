@@ -23,8 +23,10 @@
     } \
 } while (0)
 
-/* Checks whether p is a null pointer for the purposes of error checking */
-#define ERR_IS_NULLPTR(p) (__builtin_expect((p) == NULL, 0))
+#define IS_NULLPTR(p) ((p) == NULL)
+
+/* Wrap this around an int when checking for an error condition */
+#define ERR(b) (__builtin_expect((b), 0)
 
 /* Allows for TODO messages in code, and fails if reached in execution during
  * debug mode */

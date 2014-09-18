@@ -48,7 +48,7 @@ alloc_error(const char *format, ...)
 
 // The line might not always be exactly right, but it should be close enough to
 // identify where the error occured
-static inline void
+static void
 mem_fail(size_t bytes, unsigned int line, const char *file)
 {
     ASSUME(file != NULL);
@@ -74,7 +74,7 @@ add_ptr_info(const void *ptr, size_t bytes)
     ASSUME(bytes > 0);
 
     tmp = realloc(ptr_infos, n_ptr_infos + 1);
-    if (ERR_IS_NULLPTR(tmp)) {
+    if (ERR(tmp == NULL)) {
         mem_fail(n_ptr_infos + 1, __LINE__, __FILE__);
         return -1;
     }
@@ -126,7 +126,7 @@ remove_ptr_info(const void *ptr)
             }
             else {
                 tmp = realloc(ptr_infos, n_ptr_infos);
-                if (ERR_IS_NULLPTR(tmp)) {
+                if (ERR(tmp == NULL)) {
                     mem_fail(n_ptr_infos, __LINE__, __FILE__);
                     return;
                 }
@@ -140,7 +140,7 @@ remove_ptr_info(const void *ptr)
     ASSUME_UNREACHABLE();
 }
 
-// void alloc_init(void) does nothing and is implemented as an empty macro
+// void alloc_init(void) does nothing and is implemented as ((void)0)
 
 void
 alloc_free(void)
@@ -171,7 +171,7 @@ get_buf(size_t len)
     size = (len + 1) * sizeof(*str);
 
     str = malloc(size);
-    if (ERR_IS_NULLPTR(str)) {
+    if (ERR(str == NULL)) {
         mem_fail(size, __LINE__, __FILE__);
         return NULL;
     }
@@ -196,7 +196,7 @@ malloc_d(size_t n, unsigned int line, const char *file)
     }
 
     ptr = malloc(n);
-    if (ERR_IS_NULLPTR(ptr)) {
+    if (ERR(ptr == NULL)) {
         mem_fail(n, line, file);
         return NULL;
     }
@@ -217,7 +217,7 @@ malloc_d(size_t n, unsigned int line, const char *file)
     size += buf_size * 2;
 
     tmp = realloc(ptr, size);
-    if (ERR_IS_NULLPTR(tmp)) {
+    if (ERR(tmp == NULL)) {
         free(ptr);
         mem_fail(size, line, file);
         return NULL;
@@ -251,7 +251,7 @@ calloc_d(size_t n, size_t size, unsigned int line, const char *file)
     ASSUME(file != NULL);
 
     ptr = malloc_d(n * size, line, file);
-    if (ERR_IS_NULLPTR(ptr)) {
+    if (ERR(ptr == NULL)) {
         // mem_fail called in malloc_d
         return NULL;
     }
@@ -298,7 +298,7 @@ realloc_d(void *ptr, size_t n, unsigned int line, const char *file)
     }
 
     new_ptr = malloc_d(n, line, file);
-    if (ERR_IS_NULLPTR(new_ptr)) {
+    if (ERR(new_ptr == NULL)) {
         // mem_fail called in malloc_d
         return NULL;
     }
