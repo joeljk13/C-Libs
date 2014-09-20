@@ -10,6 +10,9 @@ struct ptrvec {
 int
 ptrvec_init(struct ptrvec *ptrvec);
 
+void
+ptrvec_zero(struct ptrvec *ptrvec);
+
 int
 ptrvec_push(struct ptrvec *ptrvec, void *ptr);
 
@@ -29,11 +32,17 @@ ptrvec_insert(struct ptrvec *ptrvec, void *ptr, size_t index);
 int
 ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index);
 
-int
+void
 ptrvec_remove(struct ptrvec *ptrvec, size_t index);
 
-int
+void
 ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end);
+
+void
+ptrvec_remove_fast(struct ptrvec *ptrvec, size_t index);
+
+void
+ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end);
 
 int
 ptrvec_contains(struct ptrvec *ptrvec, void *ptr);
@@ -53,12 +62,6 @@ ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end);
 // Or maybe struct ptrvec **
 struct ptrvec *
 ptrvec_split(struct ptrvec *ptrvec, void *ptr);
-
-void
-ptrvec_make_unique(struct ptrvec *ptrvec);
-
-void
-ptrvec_reverse(struct ptrvec *ptrvec);
 
 void
 ptrvec_free(struct ptrvec *ptrvec);

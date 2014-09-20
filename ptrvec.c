@@ -3,11 +3,7 @@
 
 #include "alloc.h"
 
-// struct ptrvec {
-    // void **ptr;
-    // size_t length;
-    // size_t capacity;
-// }
+#include <string.h>
 
 int
 ptrvec_init(struct ptrvec *ptrvec)
@@ -37,7 +33,7 @@ reserve_one(void **ptr, size_t *capacity)
 
     ASSUME(ptr != NULL);
     ASSUME(capacity != NULL);
-
+j
     cap = get_next_capacity(*capacity);
 
     tmp = REALLOC(ptr, cap * sizeof(*ptr));
@@ -54,6 +50,17 @@ reserve_one(void **ptr, size_t *capacity)
     *capacity = cap;
 
     return 0;
+}
+
+void
+ptrvec_zero(struct ptrvec *ptrvec)
+{
+    ASSUME(ptrvec != NULL);
+
+    // Can't use memset, because it's possible that NULL != 0
+    for (size_t i = 0; i < ptrvec->length; ++i) {
+        ptrvec->ptr[i] = NULL;
+    }
 }
 
 int
@@ -80,9 +87,7 @@ ptrvec_push_v(struct ptrvec *ptrvec, struct ptrvec *ptr)
         return -1;
     }
 
-    for (size_t i = 0; i < ptr->length; ++i) {
-        ptrvec->ptr[ptrvec->length + i] = ptr->ptr[i];
-    }
+    memcpy(ptrvec->ptr + ptrvec->length, ptr->ptr, ptr->length);
 
     return 0;
 }
@@ -106,51 +111,182 @@ ptrvec_peek(struct ptrvec *ptrvec)
 int
 ptrvec_insert(struct ptrvec *ptrvec, void *ptr, size_t index)
 {
-    ASSUME(ptrvec == NULL);
+    ASSUME(ptrvec != NULL);
     ASSUME(index <= ptrvec->length);
 
     if (ptrvec->length == ptrvec->capacity) {
         if (ERR(reserve_one(ptrvec->ptr, &ptrvec->capacity))) {
-
+            return -1;
         }
     }
 
-    for (size_t i = index; i <
+    memmove(ptrvec->ptr + index + 1, ptrvec->ptr + index,
+            ptrvec->length - index - 1);
+
+    ptrvec->ptr[index] = ptr;
+
+    ++ptrvec->length;
+
+    return 0;
 }
 
 int
-ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index);
+ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index)
+{
+    ASSUME(ptrvec != NULL);
+    ASSUME(ptr != NULL);
+    ASSUME(index <= ptrvec->length);
+
+    if (ERR(ptrvec_reserve(&ptrvec, ptrvec->length + ptr->length) != 0)) {
+        return -1;
+    }
+
+    memmove(ptrvec->ptr + index + ptr->length, ptrvec->ptr + index,
+            ptr->length);
+    // If it's inserting a ptrvec inside itself, it'll need a memmove
+    memmove(ptrvec->ptr + index, ptr->ptr, ptr->length);
+
+    ptrvec->length += ptr->length;
+
+    return 0;
+}
+
+void
+ptrvec_remove(struct ptrvec *ptrvec, size_t index)
+{
+    ASSUME(ptrvec != NULL);
+    ASSUME(index < ptrvec->length);
+
+    memmove(ptrvec->ptr + index, ptrvec->ptr + index + 1,
+            ptrvec->length - index - 1);
+}
+
+void
+ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end)
+{
+    ASSUME(ptrvec != NULL);
+    ASSUME(begin <= end);
+    ASSUME(end <= ptrvec->length);
+
+    memmove(ptrvec->ptr + begin, ptrvec->ptr + end, ptrvec->length - end);
+}
+
+void
+ptrvec_remove_fast(struct ptrvec *ptrvec, size_t index)
+{
+    ASSUME(ptrvec != NULL);
+    ASSUME(index <= ptrvec->length);
+
+    ptrvec->ptr[index] = ptrvec->ptr[--ptrvec->length];
+}
+
+void
+ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
+{
+    ASSUME(ptrvec != NULL);
+    ASSUME(begin <= end);
+    ASSUME(end <= ptrvec->length);
+
+    memmove(ptrvec->ptr + begin, ptrvec->ptr + ptrvec->length - (end - begin),
+            end - begin);
+}
 
 int
-ptrvec_remove(struct ptrvec *ptrvec, size_t index);
+ptrvec_contains(struct ptrvec *ptrvec, void *ptr)
+{
+    ASSUME(ptrvec != NULL);
 
-int
-ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end);
+    for (size_t i = 0; i < ptrvec->length; ++i) {
+        if (ptrvec->ptr[i] == ptr) {
+            return 1;
+        }
+    }
 
-int
-ptrvec_contains(struct ptrvec *ptrvec, void *ptr);
+    return 0;
+}
 
 size_t
-ptrvec_find(struct ptrvec *ptrvec, void *ptr);
+ptrvec_find(struct ptrvec *ptrvec, void *ptr)
+{
+    ASSUME(ptrvec != NULL);
+
+    for (size_t i = 0; i < ptrvec->length; ++i) {
+        if (ptrvec->ptr[i] == ptr) {
+            return i;
+        }
+    }
+
+    return ptrvec->length;
+}
 
 int
-ptrvec_resize(struct ptrvec *ptrvec, size_t size);
+ptrvec_resize(struct ptrvec *ptrvec, size_t size)
+{
+    void *tmp;
+
+    ASSUME(ptrvec != NULL);
+
+    if (size <= ptrvec->capacity) {
+        ptrvec->length = size;
+
+        return 0;
+    }
+
+    tmp = REALLOC(ptrvec->ptr, size * sizeof(*ptrvec->ptr));
+    if (ERR(tmp == NULL)) {
+        return -1;
+    }
+    ptrvec->ptr = tmp;
+
+    ptrvec->length = ptrvec->capacity = size;
+
+    return 0;
+}
 
 int
-ptrvec_reserve(struct ptrvec *ptrvec, size_t size);
+ptrvec_reserve(struct ptrvec *ptrvec, size_t size)
+{
+    void *tmp;
 
-int
-ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end);
+    ASSUME(ptrvec != NULL);
+
+    if (size <= ptrvec->capacity) {
+        return 0;
+    }
+
+    tmp = REALLOC(ptrvec->ptr, size * sizeof(*ptrvec->ptr));
+    if (ERR(tmp == NULL)) {
+        return -1;
+    }
+    ptrvec->ptr = tmp;
+
+    ptrvec->capacity = size;
+
+    return 0;
+}
+
+void
+ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end)
+{
+    ASSUME(ptrvec != NULL);
+    ASSUME(begin <= end);
+    ASSUME(end <= ptrvec->length);
+
+    ptrvec_remove_r(ptrvec, end, ptrvec->length);
+    ptrvec_remove_r(ptrvec, 0, begin);
+}
 
 // Or maybe struct ptrvec **
 struct ptrvec *
-ptrvec_split(struct ptrvec *ptrvec, void *ptr);
+ptrvec_split(struct ptrvec *ptrvec, void *ptr)
+{
+    TODO(Implement ptrvec_split!);
+}
 
 void
-ptrvec_make_unique(struct ptrvec *ptrvec);
+ptrvec_free(struct ptrvec *ptrvec)
+{
+    ASSUME(ptrvec != NULL);
 
-void
-ptrvec_reverse(struct ptrvec *ptrvec);
-
-void
-ptrvec_free(struct ptrvec *ptrvec);
+    FREE(ptrvec->ptr);
+}
