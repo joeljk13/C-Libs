@@ -36,8 +36,8 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     size_t name_len, name_prefix_len, abbrev_len, abbrev_prefix_len;
 
     ASSUME(name != NULL);
-    ASSUME(type == ARG_STRING || type == ARG_INTEGER || type == ARG_REAL ||
-           type == ARG_BOOL);
+    ASSUME(type == ARG_STRING || type == ARG_INTEGER || type == ARG_REAL
+           || type == ARG_BOOL);
 
     name_len = strlen(name);
     name_prefix_len = (*name != '-') * 2;
@@ -50,6 +50,7 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     full_abbrev = (abbrev == NULL ? NULL :
                    MALLOC((abbrev_len + abbrev_prefix_len)
                           * sizeof(*full_abbrev)));
+
     if (ERR_IS_NULLPTR(full_name) || ERR_IS_NULLPTR(full_abbrev)) {
         FREE(full_name);
         FREE(full_abbrev);
@@ -78,11 +79,11 @@ parse_format(const char *format)
     ptrvec_init(&stack);
 
     for (int i = 0; format[i] != '\0'; ++i) {
-        switch (c) {
+        switch (format[i]) {
         case '(':
         case '[':
         case '{':
-            ptrvec_push(&stack, c);
+            ptrvec_push(&stack, format + i);
             break;
         case ')':
         case ']':
@@ -91,8 +92,6 @@ parse_format(const char *format)
             break;
         }
     }
-
-    ptrvec_free(&stack);
 
     return 0;
 }
@@ -123,8 +122,7 @@ args_init(int argc, const char **argv, const char *format)
         }
 
         return 0;
-    }
-    else {
+    } else {
         for (int i = 0; i < argc_; ++i) {
             args = (struct arg){0};
         }

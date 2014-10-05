@@ -13,18 +13,17 @@ ptrvec_init(struct ptrvec *ptrvec)
     ptrvec->ptr = NULL;
     ptrvec->length = 0;
     ptrvec->capacity = 0;
+
+    return 0;
 }
 
 static inline size_t
 get_next_capacity(size_t capacity)
 {
-    if (capacity == 0) {
-        return 1;
-    }
-
-    return 2 * capacity;
+    return capacity == 0 ? 1 : 2 * capacity;
 }
 
+/* Sets the *capacity to the new capacity. */
 static inline int
 reserve_one(void **ptr, size_t *capacity)
 {
@@ -33,7 +32,7 @@ reserve_one(void **ptr, size_t *capacity)
 
     ASSUME(ptr != NULL);
     ASSUME(capacity != NULL);
-j
+
     cap = get_next_capacity(*capacity);
 
     tmp = REALLOC(ptr, cap * sizeof(*ptr));
@@ -57,7 +56,8 @@ ptrvec_zero(struct ptrvec *ptrvec)
 {
     ASSUME(ptrvec != NULL);
 
-    // Can't use memset, because it's possible that NULL != 0
+    // Can't use memset, because it's possible that NULL is not represented by
+    // all 0 bits
     for (size_t i = 0; i < ptrvec->length; ++i) {
         ptrvec->ptr[i] = NULL;
     }
@@ -68,8 +68,10 @@ ptrvec_push(struct ptrvec *ptrvec, void *ptr)
 {
     ASSUME(ptrvec != NULL);
 
-    if (ptrvec->capacity == ptrvec->length) {
-        reserve_one(ptrvec->ptr, &ptrvec->capacity);
+    if (ptrvec->capacity == ptrvec->length
+        && ERR(reserve_one(ptrvec->ptr, &ptrvec->capacity) != 0)) {
+
+        return -1;
     }
 
     ptrvec->ptr[ptrvec->length++] = ptr;
@@ -97,7 +99,7 @@ ptrvec_pop(struct ptrvec *ptrvec)
 {
     ASSUME(ptrvec != NULL);
 
-    return ptrvec->ptr + --ptrvec->length;
+    return ptrvec->ptr[--ptrvec->length];
 }
 
 void *
@@ -105,7 +107,7 @@ ptrvec_peek(struct ptrvec *ptrvec)
 {
     ASSUME(ptrvec != NULL);
 
-    return ptrvec->ptr + ptrvec->length - 1;
+    return ptrvec->ptr[ptrvec->length - 1];
 }
 
 int
@@ -114,10 +116,10 @@ ptrvec_insert(struct ptrvec *ptrvec, void *ptr, size_t index)
     ASSUME(ptrvec != NULL);
     ASSUME(index <= ptrvec->length);
 
-    if (ptrvec->length == ptrvec->capacity) {
-        if (ERR(reserve_one(ptrvec->ptr, &ptrvec->capacity))) {
-            return -1;
-        }
+    if (ptrvec->length == ptrvec->capacity
+        && ERR(reserve_one(ptrvec->ptr, &ptrvec->capacity) != 0)) {
+
+        return -1;
     }
 
     memmove(ptrvec->ptr + index + 1, ptrvec->ptr + index,
@@ -169,6 +171,7 @@ ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end)
     ASSUME(end <= ptrvec->length);
 
     memmove(ptrvec->ptr + begin, ptrvec->ptr + end, ptrvec->length - end);
+
     ptrvec->length -= (end - begin);
 }
 
@@ -190,6 +193,7 @@ ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
 
     memmove(ptrvec->ptr + begin, ptrvec->ptr + ptrvec->length - (end - begin),
             end - begin);
+
     ptrvec->length -= (end - begin);
 }
 
@@ -229,6 +233,10 @@ ptrvec_resize(struct ptrvec *ptrvec, size_t size)
     ASSUME(ptrvec != NULL);
 
     if (size <= ptrvec->capacity) {
+        for (size_t i = ptrvec->length; i < size; ++i) {
+            ptrvec->ptr[i] = NULL;
+        }
+
         ptrvec->length = size;
 
         return 0;
@@ -239,6 +247,10 @@ ptrvec_resize(struct ptrvec *ptrvec, size_t size)
         return -1;
     }
     ptrvec->ptr = tmp;
+
+    for (size_t i = ptrvec->length; i < size; ++i) {
+        ptrvec->ptr[i] = NULL;
+    }
 
     ptrvec->length = ptrvec->capacity = size;
 

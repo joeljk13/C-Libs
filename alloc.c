@@ -55,7 +55,7 @@ mem_fail(size_t bytes, int line, const char *file)
     ASSUME(file != NULL);
 
     alloc_error("Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
-            line, file, bytes);
+                line, file, bytes);
 }
 
 struct ptr_info {
@@ -98,6 +98,7 @@ find_ptr_info(const void *ptr)
         for (const char *p = ptr_infos[i].ptr;
              p != ptr_infos[i].ptr + ptr_infos[i].bytes;
              ++p) {
+
             if (p == ptr) {
                 return ptr_infos[i].ptr;
             }
@@ -114,28 +115,29 @@ remove_ptr_info(const void *ptr)
     ASSUME(ptr != NULL);
 
     for (int i = n_ptr_infos - 1; i >= 0; --i) {
-        if (ptr == ptr_infos[i].ptr) {
-            void *tmp;
+        void *tmp;
 
-            // The order doesn't really matter, so just replace this with the
-            // last ptr_info and remove the last
-            ptr_infos[i] = ptr_infos[--n_ptr_infos];
-
-            if (n_ptr_infos == 0) {
-                free(ptr_infos);
-                ptr_infos = NULL;
-            }
-            else {
-                tmp = realloc(ptr_infos, n_ptr_infos);
-                if (ERR(tmp == NULL)) {
-                    mem_fail(n_ptr_infos, __LINE__, __FILE__);
-                    return;
-                }
-                ptr_infos = tmp;
-            }
-
-            return;
+        if (ptr != ptr_infos[i].ptr) {
+            continue;
         }
+
+        // The order doesn't really matter, so just replace this with the
+        // last ptr_info and remove the last
+        ptr_infos[i] = ptr_infos[--n_ptr_infos];
+
+        if (n_ptr_infos == 0) {
+            free(ptr_infos);
+            ptr_infos = NULL;
+        } else {
+            tmp = realloc(ptr_infos, n_ptr_infos);
+            if (ERR(tmp == NULL)) {
+                mem_fail(n_ptr_infos, __LINE__, __FILE__);
+                return;
+            }
+            ptr_infos = tmp;
+        }
+
+        return;
     }
 
     ASSUME_UNREACHABLE();
@@ -151,9 +153,10 @@ alloc_free(void)
 
         mem_info = (const struct mem_info *)ptr_infos[i].ptr;
 
-        alloc_error("Memory not freed!\n\tLine: %i\n\tFile: %s\n\t"
-                    "Bytes: %u\n\tPointer: %p\n", mem_info->line,
-                    mem_info->file, mem_info->bytes, ptr_infos[i]);
+        alloc_error("Memory not freed!\n\tLine: %i\n\tFile: %s\n"
+                    "\tBytes: %u\n\tPointer: %p\n",
+                    mem_info->line, mem_info->file, mem_info->bytes,
+                    ptr_infos[i]);
 
         free((void *)ptr_infos[i].ptr);
     }
@@ -180,8 +183,7 @@ get_buf(size_t len)
     for (int i = 0; i < len; ++i) {
         do {
             str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
-        }
-        while (str[i] == '\0');
+        } while (str[i] == '\0');
     }
 
     str[len] = '\0';
@@ -229,6 +231,7 @@ malloc_d(size_t n, int line, const char *file)
     if (ERR(tmp == NULL)) {
         free(ptr);
         mem_fail(size, line, file);
+
         return NULL;
     }
     ptr = tmp;
@@ -290,11 +293,11 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     }
 
     old_ptr = find_ptr_info(ptr);
-
     if (old_ptr == NULL) {
-        alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n\t"
-                    "Pointer: %p\n\tProblem: Pointer not allocated",
+        alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
+                    "\tPointer: %p\n\tProblem: Pointer not allocated",
                     line, file, ptr);
+
         return NULL;
     }
 
@@ -302,9 +305,11 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 
     if (ptr != old_ptr + sizeof(struct mem_info)
         + strlen((mem_info->pre_buf))) {
-        alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n\t"
-                    "Pointer: %p\n\tProblem: Pointer shifted",
+
+        alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
+                    "\tPointer: %p\n\tProblem: Pointer shifted",
                     line, file, ptr);
+
         return NULL;
     }
 
@@ -339,9 +344,10 @@ free_d(const void *ptr, int line, const char *file)
 
     ptr_info = find_ptr_info(ptr);
     if (ptr_info == NULL) {
-        alloc_error("Freeing unallocated pointer!\n\tLine: %i\n\tFile: %s\n\t"
-                    "Pointer: %p\n",
+        alloc_error("Freeing unallocated pointer!\n\tLine: %i\n\tFile: %s\n"
+                    "\tPointer: %p\n",
                     line, file, ptr);
+
         return;
     }
 
@@ -357,8 +363,10 @@ free_d(const void *ptr, int line, const char *file)
                     "\tPointer: %p\n\tOffset: %td\n",
                     mem_info->line, mem_info->file, line, file, mem_info->bytes,
                     p + pre_len, (const char *)ptr - (p + pre_len));
+
         remove_ptr_info(ptr_info);
         free((void *)ptr_info);
+
         return;
     }
 
