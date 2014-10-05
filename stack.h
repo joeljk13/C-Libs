@@ -1,6 +1,8 @@
 #ifndef STACK_H_
 #define STACK_H_ 1
 
+#include "main.h"
+
 struct stack_elem;
 
 struct stack {

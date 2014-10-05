@@ -1,6 +1,8 @@
 #ifndef VECTOR_H_
 #define VECTOR_H_ 1
 
+#include "main.h"
+
 struct ptrvec {
     void **ptr;
     size_t length;
@@ -58,10 +60,6 @@ ptrvec_reserve(struct ptrvec *ptrvec, size_t size);
 
 int
 ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end);
-
-// Or maybe struct ptrvec **
-struct ptrvec *
-ptrvec_split(struct ptrvec *ptrvec, void *ptr);
 
 void
 ptrvec_free(struct ptrvec *ptrvec);

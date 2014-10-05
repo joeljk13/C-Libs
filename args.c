@@ -1,13 +1,15 @@
-#include "args.h"
 #include "main.h"
+#include "args.h"
 
 #include "alloc.h"
+#include "ptrvec.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
 enum arg_props {
+    ARG_NULL = 0,
     ARG_IS_FOUND = 1,
     ARG_MULTI_CASE = 2,
     ARG_PREFIXED = 4
@@ -60,7 +62,8 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     memcpy(full_abbrev, "-", abbrev_prefix_len);
     memcpy(full_abbrev + abbrev_prefix_len, abbrev, abbrev_len);
 
-    args[n_args++] = (struct arg){full_name, full_abbrev, NULL, type, 0};
+    args[n_args++] = (struct arg){full_name, full_abbrev, NULL, type,
+        ARG_NULL};
 
     return 0;
 }
@@ -68,11 +71,34 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
 int
 parse_format(const char *format)
 {
+    struct ptrvec stack;
+
     ASSUME(format != NULL);
+
+    ptrvec_init(&stack);
+
+    for (int i = 0; format[i] != '\0'; ++i) {
+        switch (c) {
+        case '(':
+        case '[':
+        case '{':
+            ptrvec_push(&stack, c);
+            break;
+        case ')':
+        case ']':
+        case '}':
+            ptrvec_pop(&stack);
+            break;
+        }
+    }
+
+    ptrvec_free(&stack);
+
+    return 0;
 }
 
 int
-args_init(unsigned int argc, const char **argv, const char *format)
+args_init(int argc, const char **argv, const char *format)
 {
     ASSUME(argc >= 1);
     ASSUME(argv != NULL);
@@ -85,7 +111,7 @@ args_init(unsigned int argc, const char **argv, const char *format)
     // used. argc_ is probably small enough that a little extra memory
     // shouldn't matter.
     args = MALLOC(argc_ * sizeof(*args));
-    if (ERR_IS_NULLPTR(args)) {
+    if (ERR(args == NULL)) {
         return -1;
     }
 
@@ -93,16 +119,14 @@ args_init(unsigned int argc, const char **argv, const char *format)
         // There was no format specified, so use the raw args. Basically 
         // register each arg that exists and say that it was found.
         for (int i = 0; i < argc_; ++i) {
-            args[i] = (struct arg){argv[i], NULL, NULL, ARG_BOOL, 1};
+            args[i] = (struct arg){argv[i], NULL, NULL, ARG_BOOL, ARG_IS_FOUND};
         }
 
         return 0;
     }
     else {
-        // This will probably zero args, but just in case do this explicity
-        // instead of using CALLOC or MALLOC + memset
         for (int i = 0; i < argc_; ++i) {
-            args = (struct arg){NULL, NULL, NULL, ARG_BOOL, 0};
+            args = (struct arg){0};
         }
 
         if (ERR(parse_format(format) != 0)) {

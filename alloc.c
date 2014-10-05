@@ -1,7 +1,7 @@
 #ifndef NDEBUG
 
-#include "alloc.h"
 #include "main.h"
+#include "alloc.h"
 
 #include <limits.h>
 #include <stdarg.h>
@@ -9,12 +9,12 @@
 #include <stdio.h>
 #include <string.h>
 
-static size_t alloc_min_buffer_size = 32;
+static size_t alloc_min_buf_size = 32;
 
 void
-alloc_set_min_buffer_size(size_t size)
+alloc_size(size_t size)
 {
-    if (size <= alloc_min_buffer_size) {
+    if (size <= alloc_min_buf_size) {
         return;
     }
 
@@ -23,12 +23,12 @@ alloc_set_min_buffer_size(size_t size)
     for (size_t i = 1; i < sizeof(size) * CHAR_BIT; i *= 2) {
         size |= size >> i;
     }
-    alloc_min_buffer_size = size + 1;
+    alloc_min_buf_size = size + 1;
 }
 
 struct mem_info {
     size_t bytes;
-    unsigned int line;
+    int line;
     const char *file;
     const char *pre_buf;
     const char *post_buf;
@@ -49,8 +49,9 @@ alloc_error(const char *format, ...)
 // The line might not always be exactly right, but it should be close enough to
 // identify where the error occured
 static void
-mem_fail(size_t bytes, unsigned int line, const char *file)
+mem_fail(size_t bytes, int line, const char *file)
 {
+    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     alloc_error("Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
@@ -140,7 +141,7 @@ remove_ptr_info(const void *ptr)
     ASSUME_UNREACHABLE();
 }
 
-// void alloc_init(void) does nothing and is implemented as ((void)0)
+// void alloc_init(void) does nothing
 
 void
 alloc_free(void)
@@ -166,7 +167,7 @@ get_buf(size_t len)
     char *str;
     size_t size;
 
-    ASSUME(len >= alloc_min_buffer_size);
+    ASSUME(len >= alloc_min_buf_size);
 
     size = (len + 1) * sizeof(*str);
 
@@ -177,19 +178,27 @@ get_buf(size_t len)
     }
 
     for (int i = 0; i < len; ++i) {
-        str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
+        do {
+            str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
+        }
+        while (str[i] == '\0');
     }
+
+    str[len] = '\0';
 
     return str;
 }
 
 void *
-malloc_d(size_t n, unsigned int line, const char *file)
+malloc_d(size_t n, int line, const char *file)
 {
     char *ptr, *tmp;
     uintptr_t align;
     size_t size, buf_size, remainder;
     struct mem_info *mem_info;
+
+    ASSUME(line >= 0);
+    ASSUME(file != NULL);
 
     if (n == 0) {
         return NULL;
@@ -209,7 +218,7 @@ malloc_d(size_t n, unsigned int line, const char *file)
     // align is now the number of bytes that malloc was alligned to - make sure
     // the returned value is also aligned to that
     size = sizeof(struct mem_info) + n;
-    buf_size = alloc_min_buffer_size;
+    buf_size = alloc_min_buf_size;
     remainder = (sizeof(struct mem_info) + buf_size) % align;
     if (remainder) {
         buf_size += remainder;
@@ -244,10 +253,11 @@ malloc_d(size_t n, unsigned int line, const char *file)
 }
 
 void *
-calloc_d(size_t n, size_t size, unsigned int line, const char *file)
+calloc_d(size_t n, size_t size, int line, const char *file)
 {
     void *ptr;
 
+    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     ptr = malloc_d(n * size, line, file);
@@ -262,12 +272,13 @@ calloc_d(size_t n, size_t size, unsigned int line, const char *file)
 }
 
 void *
-realloc_d(void *ptr, size_t n, unsigned int line, const char *file)
+realloc_d(void *ptr, size_t n, int line, const char *file)
 {
     const char *old_ptr;
     char *new_ptr;
     const struct mem_info *mem_info;
 
+    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     if (ptr == NULL) {
@@ -312,13 +323,14 @@ realloc_d(void *ptr, size_t n, unsigned int line, const char *file)
 }
 
 void
-free_d(const void *ptr, unsigned int line, const char *file)
+free_d(const void *ptr, int line, const char *file)
 {
     const char *ptr_info;
     const char *p;
     const struct mem_info *mem_info;
     size_t pre_len, post_len;
 
+    ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     if (ptr == NULL) {
@@ -326,7 +338,6 @@ free_d(const void *ptr, unsigned int line, const char *file)
     }
 
     ptr_info = find_ptr_info(ptr);
-
     if (ptr_info == NULL) {
         alloc_error("Freeing unallocated pointer!\n\tLine: %i\n\tFile: %s\n\t"
                     "Pointer: %p\n",

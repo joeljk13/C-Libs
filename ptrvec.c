@@ -1,5 +1,5 @@
-#include "vector.h"
 #include "main.h"
+#include "vector.h"
 
 #include "alloc.h"
 
@@ -169,6 +169,7 @@ ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end)
     ASSUME(end <= ptrvec->length);
 
     memmove(ptrvec->ptr + begin, ptrvec->ptr + end, ptrvec->length - end);
+    ptrvec->length -= (end - begin);
 }
 
 void
@@ -189,6 +190,7 @@ ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
 
     memmove(ptrvec->ptr + begin, ptrvec->ptr + ptrvec->length - (end - begin),
             end - begin);
+    ptrvec->length -= (end - begin);
 }
 
 int
@@ -274,13 +276,6 @@ ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end)
 
     ptrvec_remove_r(ptrvec, end, ptrvec->length);
     ptrvec_remove_r(ptrvec, 0, begin);
-}
-
-// Or maybe struct ptrvec **
-struct ptrvec *
-ptrvec_split(struct ptrvec *ptrvec, void *ptr)
-{
-    TODO(Implement ptrvec_split!);
 }
 
 void

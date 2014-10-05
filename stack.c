@@ -1,5 +1,5 @@
-#include "stack.h"
 #include "main.h"
+#include "stack.h"
 
 #include "alloc.h"
 

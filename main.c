@@ -9,6 +9,8 @@
 
 int main(int argc, char *argv[])
 {
+    TODO(yeah);
+
     char *ptr;
     struct stack stack;
     int a = 1;

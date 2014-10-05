@@ -1,6 +1,8 @@
 #ifndef ARGS_H_
 #define ARGS_H_ 1
 
+#include "main.h"
+
 enum arg_type {
     ARG_BOOL,
     ARG_STRING,
