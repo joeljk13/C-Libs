@@ -5,32 +5,23 @@
 
 #include <assert.h>
 #include <stdio.h>
+
+#ifdef NDEBUG
+
 #include <stdlib.h>
+#include <time.h>
+
+#endif
 
 int main(int argc, char *argv[])
 {
-    TODO(yeah);
+    ASSUME(argc > 0);
 
-    char *ptr;
-    struct stack stack;
-    int a = 1;
+#ifdef NDEBUG
 
-    alloc_init();
+    srand(time(NULL));
 
-    stack_init(&stack);
-    assert(stack_is_empty(&stack));
-    stack_free(&stack);
-
-    stack_init(&stack);
-    stack_push(&stack, &a);
-    assert(!stack_is_empty(&stack));
-    assert(stack_peek(&stack) == &a);
-    assert(stack_pop(&stack) == &a);
-    assert(stack_is_empty(&stack));
-    stack_push(&stack, &a);
-    stack_free(&stack);
-
-    alloc_free();
+#endif
 
     return 0;
 }

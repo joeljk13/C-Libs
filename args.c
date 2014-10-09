@@ -69,29 +69,69 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     return 0;
 }
 
+struct format_meta {
+    int case_insensitive;
+    int noprepend;
+};
+
+int
+parse_meta_data(const char *format, struct format_meta *data)
+{
+    ASSUME(data != NULL);
+
+    for (size_t i = 0; format[i] != '\0'; ++i) {
+        switch (format[i]) {
+        case 'P':
+            data->noprepend = 0;
+            break;
+
+        case 'p':
+            data->noprepend = 1;
+            break;
+
+        case 'C':
+            data->case_insensitive = 0;
+            break;
+
+        case 'c':
+            data->case_insensitive = 1;
+            break;
+
+        case '>':
+            return 0;
+
+        default:
+            return -1;
+
+        }
+    }
+}
+
 int
 parse_format(const char *format)
 {
     struct ptrvec stack;
+    struct format_options = {0};
+
+    const char def_group_char = '(';
 
     ASSUME(format != NULL);
 
-    ptrvec_init(&stack);
+    case_sensitive = prepend = 1;
 
-    for (int i = 0; format[i] != '\0'; ++i) {
+    if (ERR(ptrvec_init(&stack) != 0)) {
+        return -1;
+    }
+
+    ptrvec_push(&stack, &def_group_char);
+
+    for (size_t i = 0; format[i] != '\0'; ++i) {
         switch (format[i]) {
-        case '(':
-        case '[':
-        case '{':
-            ptrvec_push(&stack, format + i);
-            break;
-        case ')':
-        case ']':
-        case '}':
-            ptrvec_pop(&stack);
-            break;
+        case '<':
         }
     }
+
+    ptrvec_free(&stack);
 
     return 0;
 }
