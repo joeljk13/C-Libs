@@ -8,6 +8,23 @@
 #include <stddef.h>
 #include <string.h>
 
+#define FORMAT_META_BEGIN '<'
+#define FORMAT_META_END '>'
+#define FORMAT_OPTIONAL_BEGIN '['
+#define FORMAT_OPTIONAL_END ']'
+#define FORMAT_ORDERED_BEGIN '{'
+#define FORMAT_ORDERED_END '}'
+#define FORMAT_UNORDERED_BEGIN '('
+#define FORMAT_UNORDERED_BEGIN ')'
+
+#define FORMAT_DEFAULT_BEGIN FORMAT_UNORDERED_BEGIN
+#define FORMAT_DEFAULT_END FORMAT_UNORDERED_END
+
+#define FORMAT_META_NOPREPEND 'p'
+#define FORMAT_META_PREPEND 'P'
+#define FORMAT_META_CASE_INSENSITIVE 'c'
+#define FORMAT_META_CASE_SENSITIVE 'C'
+
 enum arg_props {
     ARG_NULL = 0,
     ARG_IS_FOUND = 1,
@@ -74,30 +91,39 @@ struct format_meta {
     int noprepend;
 };
 
-int
-parse_meta_data(const char *format, struct format_meta *data)
+/* Sets *index to after the closing '>'. */
+static int
+parse_meta_data(const char *format, struct format_meta *data, size_t *index)
 {
+    ASSUME(format != NULL);
     ASSUME(data != NULL);
+    ASSUME(index != NULL);
 
-    for (size_t i = 0; format[i] != '\0'; ++i) {
+    ASSERT(*index == '<');
+
+    // Skip the '<'
+    for (size_t i = ++*index; ; ++i) {
+        // *index should equal i + 1, so that when format[i] ==
+        // FORMAT_META_END, format + index points to the first non-meta char
+        ++*index;
         switch (format[i]) {
-        case 'P':
+        case FORMAT_META_PREPEND:
             data->noprepend = 0;
             break;
 
-        case 'p':
+        case FORMAT_META_NOPREPEND:
             data->noprepend = 1;
             break;
 
-        case 'C':
+        case FORMAT_META_CASE_INSENSITIVE:
             data->case_insensitive = 0;
             break;
 
-        case 'c':
+        case FORMAT_META_CASE_SENSITIVE:
             data->case_insensitive = 1;
             break;
 
-        case '>':
+        case FORMAT_META_END:
             return 0;
 
         default:
@@ -105,29 +131,46 @@ parse_meta_data(const char *format, struct format_meta *data)
 
         }
     }
+
+    ASSUME_UNREACHABLE();
 }
 
-int
+static int
 parse_format(const char *format)
 {
     struct ptrvec stack;
-    struct format_options = {0};
+    struct format_meta = {0};
 
-    const char def_group_char = '(';
+    const char def_group_char = FORMAT_DEFAULT_BEGIN;
 
     ASSUME(format != NULL);
-
-    case_sensitive = prepend = 1;
 
     if (ERR(ptrvec_init(&stack) != 0)) {
         return -1;
     }
 
-    ptrvec_push(&stack, &def_group_char);
+    if (ERR(ptrvec_push(&stack, &def_group_char) != 0)) {
+        ptrvec_free(&stack);
+        return -1;
+    }
 
-    for (size_t i = 0; format[i] != '\0'; ++i) {
+    for (size_t i = 0; ; ++i) {
         switch (format[i]) {
         case '<':
+            if (ERR(parse_meta_data(format, &format_meta, &i) != 0)) {
+                ptrvec_free(&stack);
+                return -1;
+            }
+            break;
+
+        case '{':
+        case '(':
+        case '[':
+            if (ERR(ptrvec_push(&stack, format + i) != 0)) {
+                ptrvec_free(&stack);
+                return -1;
+            }
+            break;
         }
     }
 
