@@ -8,28 +8,11 @@
 #include <stddef.h>
 #include <string.h>
 
-#define FORMAT_META_BEGIN '<'
-#define FORMAT_META_END '>'
-#define FORMAT_OPTIONAL_BEGIN '['
-#define FORMAT_OPTIONAL_END ']'
-#define FORMAT_ORDERED_BEGIN '{'
-#define FORMAT_ORDERED_END '}'
-#define FORMAT_UNORDERED_BEGIN '('
-#define FORMAT_UNORDERED_BEGIN ')'
-
-#define FORMAT_DEFAULT_BEGIN FORMAT_UNORDERED_BEGIN
-#define FORMAT_DEFAULT_END FORMAT_UNORDERED_END
-
-#define FORMAT_META_NOPREPEND 'p'
-#define FORMAT_META_PREPEND 'P'
-#define FORMAT_META_CASE_INSENSITIVE 'c'
-#define FORMAT_META_CASE_SENSITIVE 'C'
-
 enum arg_props {
-    ARG_NULL = 0,
-    ARG_IS_FOUND = 1,
-    ARG_MULTI_CASE = 2,
-    ARG_PREFIXED = 4
+    ARG_NULL        = 0x0,
+    ARG_IS_FOUND    = 0x1,
+    ARG_MULTI_CASE  = 0x2,
+    ARG_PREFIXED    = 0x4
 };
 
 struct arg {
@@ -38,6 +21,44 @@ struct arg {
     void *value;
     enum arg_type type;
     enum arg_props props;
+};
+
+enum {
+    FORMAT_OPTIONS_BEGIN    = '<',
+    FORMAT_OPTIONS_END      = '>',
+    FORMAT_OPTIONAL_BEGIN   = '[',
+    FORMAT_OPTIONAL_END     = ']',
+    FORMAT_ORDERED_BEGIN    = '{',
+    FORMAT_ORDERED_END      = '}',
+    FORMAT_UNORDERED_BEGIN  = '(',
+    FORMAT_UNORDERED_EN     = ')',
+
+    FORMAT_DEFAULT_BEGIN    = FORMAT_UNORDERED_BEGIN,
+    FORMAT_DEFAULT_END      = FORMAT_UNORDERED_END,
+
+    FORMAT_OPTIONS_NOPREPEND        = 'p',
+    FORMAT_OPTIONS_PREPEND          = 'P',
+    FORMAT_OPTIONS_CASE_INSENSITIVE = 'c',
+    FORMAT_OPTIONS_CASE_SENSITIVE   = 'C'
+};
+
+/* Initialize to {0} to set all options to the defaults */
+struct format_options {
+    int case_insensitive;
+    int noprepend;
+};
+
+struct format_data {
+    union {
+        struct arg arg;
+        char data;
+    };
+
+    enum {
+        FORMAT_GROUPING,
+        FORMAT_META_DATA,
+        FORMAT_ARG
+    } type;
 };
 
 static int argc_ = 0;
@@ -86,62 +107,69 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     return 0;
 }
 
-struct format_meta {
-    int case_insensitive;
-    int noprepend;
-};
-
 /* Sets *index to after the closing '>'. */
 static int
-parse_meta_data(const char *format, struct format_meta *data, size_t *index)
+parse_options(const char *format, struct format_options *options,
+              size_t *index)
 {
     ASSUME(format != NULL);
-    ASSUME(data != NULL);
+    ASSUME(options != NULL);
     ASSUME(index != NULL);
 
-    ASSERT(*index == '<');
+    ASSERT(format[*index] == FORMAT_OPTIONS_BEGIN);
 
     // Skip the '<'
-    for (size_t i = ++*index; ; ++i) {
-        // *index should equal i + 1, so that when format[i] ==
-        // FORMAT_META_END, format + index points to the first non-meta char
-        ++*index;
+    for (++*index; ; ++*index) {
         switch (format[i]) {
-        case FORMAT_META_PREPEND:
-            data->noprepend = 0;
+
+        case FORMAT_OPTIONS_PREPEND:
+            options->noprepend = 0;
             break;
 
-        case FORMAT_META_NOPREPEND:
-            data->noprepend = 1;
+        case FORMAT_OPTIONS_NOPREPEND:
+            options->noprepend = 1;
             break;
 
-        case FORMAT_META_CASE_INSENSITIVE:
-            data->case_insensitive = 0;
+        case FORMAT_OPTIONS_CASE_INSENSITIVE:
+            options->case_insensitive = 0;
             break;
 
-        case FORMAT_META_CASE_SENSITIVE:
-            data->case_insensitive = 1;
+        case FORMAT_OPTIONS_CASE_SENSITIVE:
+            options->case_insensitive = 1;
             break;
 
-        case FORMAT_META_END:
+        case FORMAT_OPTIONS_END:
+            // Make sure format + index points to the character after
+            // FORMAT_OPTIONS_END
+            ++*index;
+
+        case '\0':
             return 0;
 
         default:
             return -1;
-
         }
     }
 
     ASSUME_UNREACHABLE();
 }
 
+int
+lex_format(const char *format, struct ptrvec *stack)
+{
+    ASSUME(format != NULL);
+    ASSUME(stack != NULL);
+
+    return 0;
+}
+
 static int
 parse_format(const char *format)
 {
+    int err;
     struct ptrvec stack;
-    struct format_meta = {0};
-
-    const char def_group_char = FORMAT_DEFAULT_BEGIN;
+    struct format_options options = {0};
+    struct format_data first, last;
 
     ASSUME(format != NULL);
 
@@ -149,34 +177,81 @@ parse_format(const char *format)
         return -1;
     }
 
+    err = 0;
+
+    first = (struct format_data){
+        .type: FORMAT_GROUPING,
+        .data: '('
+    };
+
     if (ERR(ptrvec_push(&stack, &def_group_char) != 0)) {
-        ptrvec_free(&stack);
-        return -1;
+        err = -1;
+        goto exit;
     }
+
+    last = (struct format_data){
+        .type: FORMAT_GROUPING,
+        .data: ')'
+    };
 
     for (size_t i = 0; ; ++i) {
         switch (format[i]) {
-        case '<':
-            if (ERR(parse_meta_data(format, &format_meta, &i) != 0)) {
-                ptrvec_free(&stack);
-                return -1;
+
+        case FORMAT_META_BEGIN:
+            if (ERR(parse_meta_data(format, &meta, &i) != 0)) {
+                err = -1;
+                goto exit;
             }
+
             break;
 
-        case '{':
-        case '(':
-        case '[':
+        case FORMAT_ORDERED_BEGIN:
+        case FORMAT_UNORDERED_BEGIN:
+        case FORMAT_OPTIONAL_BEGIN:
             if (ERR(ptrvec_push(&stack, format + i) != 0)) {
-                ptrvec_free(&stack);
-                return -1;
+                err = -1;
+                goto exit;
             }
+
+            break;
+
+        case FORMAT_ORDERED_END:
+            if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
+                                              FORMAT_ORDERED_BEGIN)) {
+
+                err = -1;
+                goto exit;
+            }
+
+            break;
+
+        case FORMAT_UNORDERED_END:
+            if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
+                                              FORMAT_UNOREDERED_BEGIN)) {
+
+                err = -1;
+                goto exit;
+            }
+
+            break;
+
+        case FORMAT_OPTIONAL_END:
+            if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
+                                              FORMAT_OPTIONAL_BEGIN)) {
+
+                err = -1;
+                goto exit;
+            }
+
             break;
         }
     }
 
+exit:
+
     ptrvec_free(&stack);
 
-    return 0;
+    return err;
 }
 
 int
