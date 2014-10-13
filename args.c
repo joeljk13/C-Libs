@@ -18,9 +18,13 @@ enum arg_props {
 struct arg {
     const char *name;
     const char *abbrev;
-    void *value;
+
     enum arg_type type;
     enum arg_props props;
+
+    union {
+        const char *value_s;
+    };
 };
 
 enum {
@@ -50,11 +54,12 @@ struct format_options {
 
 struct format_data {
     union {
-        struct arg arg;
-        char data;
+        const struct arg arg;
+        const char *data;
+        const char grouping;
     };
 
-    enum {
+    const enum {
         FORMAT_GROUPING,
         FORMAT_META_DATA,
         FORMAT_ARG
@@ -107,10 +112,9 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
     return 0;
 }
 
-/* Sets *index to after the closing '>'. */
-static int
+static inline int
 parse_options(const char *format, struct format_options *options,
-              size_t *index)
+              size_t *index) NONNULL
 {
     ASSUME(format != NULL);
     ASSUME(options != NULL);
@@ -118,8 +122,8 @@ parse_options(const char *format, struct format_options *options,
 
     ASSERT(format[*index] == FORMAT_OPTIONS_BEGIN);
 
-    // Skip the '<'
-    for (++*index; ; ++*index) {
+    // Skip the FORMAT_OPTIONS_BEGIN
+    for (size_t i = *index + 1; ; ++i) {
         switch (format[i]) {
 
         case FORMAT_OPTIONS_PREPEND:
@@ -141,7 +145,7 @@ parse_options(const char *format, struct format_options *options,
         case FORMAT_OPTIONS_END:
             // Make sure format + index points to the character after
             // FORMAT_OPTIONS_END
-            ++*index;
+            *index = i + 1;
 
         case '\0':
             return 0;
@@ -154,22 +158,109 @@ parse_options(const char *format, struct format_options *options,
     ASSUME_UNREACHABLE();
 }
 
-int
-lex_format(const char *format, struct ptrvec *stack)
+static inline int
+parse_arg(const char *format, struct ptrvec *stack,
+          struct format_options *options, size_t *index) NONNULL
 {
+    struct format_data *data;
+
     ASSUME(format != NULL);
     ASSUME(stack != NULL);
+    ASSUME(options != NULL);
+    ASSUME(index != NULL);
+
+    data = MALLOC(sizeof(*data));
+    if (ERR(data == NULL)) {
+        return -1;
+    }
 
     return 0;
 }
 
-static int
-parse_format(const char *format)
+static inline int
+lex_format(const char *format, struct ptrvec *stack,
+           struct format_options *options, size_t *index) NONNULL
 {
-    int err;
+    ASSUME(format != NULL);
+    ASSUME(stack != NULL);
+    ASSUME(options != NULL);
+    ASSUME(index != NULL);
+
+    switch (format[*index]) {
+        struct format_data *data;
+
+    default:
+        if (ERR(parse_arg(format, stack, options, index) != 0)) {
+            return -1;
+        }
+
+        break;
+
+    case FORMAT_OPTIONS_BEGIN:
+        if (ERR(parse_options(format, options, &index) != 0)) {
+            return -1;
+        }
+
+        break;
+
+    case FORMAT_ORDERED_BEGIN:
+    case FORMAT_UNORDERED_BEGIN:
+    case FORMAT_OPTIONAL_BEGIN:
+        data = MALLOC(sizeof(*data));
+        if (ERR(data == NULL)) {
+            return -1;
+        }
+
+        data->type = FORMAT_GROUPING;
+        data->grouping = *format;
+
+        if (ERR(ptrvec_push(&stack, data) != 0)) {
+            FREE(data);
+            return -1;
+        }
+
+        break;
+
+    case FORMAT_ORDERED_END:
+        if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
+                                          FORMAT_ORDERED_BEGIN)) {
+
+            return -1;
+        }
+
+        break;
+
+    case FORMAT_UNORDERED_END:
+        if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
+                                          FORMAT_UNOREDERED_BEGIN)) {
+
+            return -1;
+        }
+
+        break;
+
+    case FORMAT_OPTIONAL_END:
+        if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
+                                          FORMAT_OPTIONAL_BEGIN)) {
+
+            return -1;
+        }
+
+        break;
+
+    case FORMAT_OPTIONS_END:
+        return -1;
+    }
+
+}
+
+static inline int
+parse_format(const char *format) NONNULL
+{
     struct ptrvec stack;
     struct format_options options = {0};
-    struct format_data first, last;
+
+    const char first = '(';
 
     ASSUME(format != NULL);
 
@@ -177,81 +268,23 @@ parse_format(const char *format)
         return -1;
     }
 
-    err = 0;
-
-    first = (struct format_data){
-        .type: FORMAT_GROUPING,
-        .data: '('
-    };
-
-    if (ERR(ptrvec_push(&stack, &def_group_char) != 0)) {
-        err = -1;
-        goto exit;
+    if (ERR(lex_format(&first, &stack, NULL) != 0)) {
+        ptrvec_free(&stack);
+        return -1;
     }
-
-    last = (struct format_data){
-        .type: FORMAT_GROUPING,
-        .data: ')'
-    };
 
     for (size_t i = 0; ; ++i) {
-        switch (format[i]) {
-
-        case FORMAT_META_BEGIN:
-            if (ERR(parse_meta_data(format, &meta, &i) != 0)) {
-                err = -1;
-                goto exit;
-            }
-
-            break;
-
-        case FORMAT_ORDERED_BEGIN:
-        case FORMAT_UNORDERED_BEGIN:
-        case FORMAT_OPTIONAL_BEGIN:
-            if (ERR(ptrvec_push(&stack, format + i) != 0)) {
-                err = -1;
-                goto exit;
-            }
-
-            break;
-
-        case FORMAT_ORDERED_END:
-            if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
-                                              FORMAT_ORDERED_BEGIN)) {
-
-                err = -1;
-                goto exit;
-            }
-
-            break;
-
-        case FORMAT_UNORDERED_END:
-            if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
-                                              FORMAT_UNOREDERED_BEGIN)) {
-
-                err = -1;
-                goto exit;
-            }
-
-            break;
-
-        case FORMAT_OPTIONAL_END:
-            if (ERR(stack.length == 0) || ERR(*ptrvec_pop(&stack) !=
-                                              FORMAT_OPTIONAL_BEGIN)) {
-
-                err = -1;
-                goto exit;
-            }
-
-            break;
+        if (ERR(lex_format(format + i, &stack, &i) != 0)) {
+            ptrvec_free(&stack);
+            return -1;
         }
-    }
 
-exit:
+        TODO(implement parse_format);
+    }
 
     ptrvec_free(&stack);
 
-    return err;
+    return 0;
 }
 
 int
@@ -281,11 +314,13 @@ args_init(int argc, const char **argv, const char *format)
 
         return 0;
     } else {
+        // Can't use calloc, because we need to set it to logical zero
         for (int i = 0; i < argc_; ++i) {
-            args = (struct arg){0};
+            args[i] = (struct arg){0};
         }
 
         if (ERR(parse_format(format) != 0)) {
+            FREE(args);
             return -1;
         }
     }
@@ -308,11 +343,15 @@ args_free(void)
 int
 is_arg(const char *name)
 {
-    size_t name_prefix_len;
-
     ASSUME(name != NULL);
 
-    name_prefix_len = (*name != '-') * 2;
+    TODO(implement is_arg);
+}
 
-    TODO(Implement is_arg);
+void *
+get_arg(const char *name)
+{
+    ASSUME(name != NULL);
+
+    TODO(implement get_arg);
 }

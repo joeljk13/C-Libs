@@ -4,6 +4,22 @@
 #include <assert.h>
 #include <stddef.h>
 
+/* This file contains GCC specific code. */
+
+#define NONNULL __attribute__((nonnull))
+#define NONNULL_AT(...) __attribute__((nonnull(__VA_ARGS__)))
+#define RETURNS_NONNULL __attribute((returns_nonnull))
+
+#define CONST __attribute__((const))
+
+#define PURE __attribute__((pure))
+
+#define MALLOC_LIKE __attribute__((malloc))
+
+#define LEAF __attribute__((leaf))
+
+#define UNUSED(v) ((void)(v))
+
 /* Says that a implies b. Designed to be used with ASSERT, ASSUME, etc. */
 #define IMPLIES(a,b) (!(a) || (b))
 

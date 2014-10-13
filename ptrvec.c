@@ -1,5 +1,5 @@
 #include "main.h"
-#include "vector.h"
+#include "ptrvec.h"
 
 #include "alloc.h"
 
@@ -294,6 +294,18 @@ void
 ptrvec_free(struct ptrvec *ptrvec)
 {
     ASSUME(ptrvec != NULL);
+
+    FREE(ptrvec->ptr);
+}
+
+void
+ptrvec_delete(struct ptrvec *ptrvec)
+{
+    ASSUME(ptrvec != NULL);
+
+    for (size_t i = 0; i < ptrvec->length; ++i) {
+        FREE(ptrvec->ptr[i]);
+    }
 
     FREE(ptrvec->ptr);
 }
