@@ -9,11 +9,15 @@
 #include <stdio.h>
 #include <string.h>
 
-static size_t alloc_min_buf_size = 32;
+#define INIT_ALLOC_MIN_BUF_SIZE 32
+
+static size_t alloc_min_buf_size = INIT_ALLOC_MIN_BUF_SIZE;
 
 void
 alloc_size(size_t size)
 {
+    ASSUME(alloc_min_buf_size >= INIT_ALLOC_MIN_BUF_SIZE);
+
     if (size <= alloc_min_buf_size) {
         return;
     }

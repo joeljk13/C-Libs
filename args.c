@@ -54,14 +54,12 @@ struct format_options {
 
 struct format_data {
     union {
-        const struct arg arg;
-        const char *data;
-        const char grouping;
+        struct arg arg;
+        char grouping;
     };
 
-    const enum {
+    enum {
         FORMAT_GROUPING,
-        FORMAT_META_DATA,
         FORMAT_ARG
     } type;
 };
@@ -174,6 +172,10 @@ parse_arg(const char *format, struct ptrvec *stack,
         return -1;
     }
 
+    data->type = FORMAT_ARG;
+
+    TODO(implement parse_arg);
+
     return 0;
 }
 
@@ -248,6 +250,9 @@ lex_format(const char *format, struct ptrvec *stack,
 
         break;
 
+    case '\0':
+        return 0;
+
     case FORMAT_OPTIONS_END:
         return -1;
     }
@@ -269,20 +274,20 @@ parse_format(const char *format) NONNULL
     }
 
     if (ERR(lex_format(&first, &stack, NULL) != 0)) {
-        ptrvec_free(&stack);
+        ptrvec_delete(&stack);
         return -1;
     }
 
     for (size_t i = 0; ; ++i) {
         if (ERR(lex_format(format + i, &stack, &i) != 0)) {
-            ptrvec_free(&stack);
+            ptrvec_delete(&stack);
             return -1;
         }
 
         TODO(implement parse_format);
     }
 
-    ptrvec_free(&stack);
+    ptrvec_delete(&stack);
 
     return 0;
 }

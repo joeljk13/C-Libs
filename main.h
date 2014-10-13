@@ -16,8 +16,6 @@
 
 #define MALLOC_LIKE __attribute__((malloc))
 
-#define LEAF __attribute__((leaf))
-
 #define UNUSED(v) ((void)(v))
 
 /* Says that a implies b. Designed to be used with ASSERT, ASSUME, etc. */
