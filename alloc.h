@@ -9,46 +9,6 @@
 #include <jemalloc/jemalloc.h>
 #endif
 
-/* r ## alloc functions allocate just like their counterparts, but somewhere in
- * the range [nmin, *nmax]. They try to allocate larger values, but fall back
- * on lower values on failure. *nmax is set to the actual amount allocated. If not
- * even nmin could be allocated, they return NULL. */
-
-void *
-rmalloc(size_t nmin, size_t *nmax) MALLOC_LIKE NONNULL;
-
-void *
-rcalloc(size_t nmin, size_t *nmax, size_t size) MALLOC_LIKE NONNULL;
-
-void *
-rrealloc(void *ptr, size_t nmin, size_t *nmax) NONNULL_AT(3);
-
-#ifdef NDEBUG
-
-#define jrmalloc(n,x) rmalloc((n), (x));
-#define jrcalloc(n,x,s) rcalloc((n), (x), (s));
-#define jrrealloc(p,n,x) rrealloc((p), (n), (x));
-
-#else
-
-void *
-rmalloc_d(size_t nmin, size_t *nmax, int line, const char *file) MALLOC_LIKE
-    NONNULL;
-
-void *
-rcalloc_d(size_t nmin, size_t *nmax, size_t size, int line, const char *file)
-    MALLOC_LIKE NONNULL;
-
-void *
-rrealloc_d(void *ptr, size_t nmin, size_t *nmax, int line, const char *file)
-    NONNULL_AT(3, 5);
-
-#define jrmalloc(n,x) rmalloc_d((n), (x), __LINE__, __FILE__)
-#define jrcalloc(n,x,s) rcalloc_d((n), (x), (s), __LINE__, __FILE__)
-#define jrrealloc(p,n,x) rrealloc_d((p), (n), (x), __LINE__, __FILE__)
-
-#endif
-
 #ifdef NDEBUG
 
 #define alloc_size(s) ((void)0)
@@ -91,7 +51,7 @@ void *
 realloc_d(void *ptr, size_t n, int line, const char *file);
 
 void
-free_d(const void *ptr, int line, const char *file);
+free_d(void *ptr, int line, const char *file);
 
 #define jmalloc(n) malloc_d((n), __LINE__, __FILE__)
 #define jcalloc(n,s) calloc_d((n), (s), __LINE__, __FILE__)
@@ -103,7 +63,8 @@ free_d(const void *ptr, int line, const char *file);
 #ifdef XMALLOC
 
 /* These functions are the same as the above functions, except that on failure,
- * they print a message to stderr and call abort(). */
+ * they print a message to stderr and call abort(). Also, these functions
+ * assume that you don't try to allocate 0 bytes. */
 
 void *
 xmalloc(size_t n) MALLOC_LIKE RETURNS_NONNULL;
@@ -114,24 +75,12 @@ xcalloc(size_t n, size_t size) MALLOC_LIKE RETURNS_NONNULL;
 void *
 xrealloc(void *ptr, size_t n) RETURNS_NONNULL;
 
-void *
-xrmalloc(size_t nmin, size_t *nmax) MALLOC_LIKE NONNULL;
-
-void *
-xrcalloc(size_t nmin, size_t *nmax, size_t size) MALLOC_LIKE NONNULL;
-
-void *
-xrrealloc(void *ptr, size_t nmin, size_t *nmax) NONNULL_AT(3);
-
 #ifdef NDEBUG
 
 #define jxmalloc(n) xmalloc((n))
 #define jxcalloc(n,s) xcalloc((n), (s))
 #define jxrealloc(p,n) xrealloc((p), (n))
-
-#define jxrmalloc(n,x) xrmalloc((n), (x));
-#define jxrcalloc(n,x,s) xrcalloc((n), (x), (s));
-#define jxrrealloc(p,n,x) xrrealloc((p), (n), (x));
+#define jxfree(p) jfree((void *)p)
 
 #else
 
@@ -147,25 +96,13 @@ void *
 xrealloc_d(void *ptr, size_t n, int line, const char *file) RETURNS_NONNULL
     NONNULL_AT(4);
 
-void *
-rmalloc_d(size_t nmin, size_t *nmax, int line, const char *file) MALLOC_LIKE
-    NONNULL;
-
-void *
-rcalloc_d(size_t nmin, size_t *nmax, size_t size, int line, const char *file)
-    MALLOC_LIKE NONNULL;
-
-void *
-rrealloc_d(void *ptr, size_t nmin, size_t *nmax, int line, const char *file)
-    NONNULL_AT(3, 5);
+void
+xfree_d(void *ptr, int line, const char *file) NONNULL;
 
 #define jxmalloc(n) xmalloc_d((n), __LINE__, __FILE__)
 #define jxcalloc(n,s) xcalloc_d((n), (s), __LINE__, __FILE__)
 #define jxrealloc(p,n) xrealloc_d((p), (n), __LINE__, __FILE__)
-
-#define jrmalloc(n,x) xrmalloc_d((n), (x), __LINE__, __FILE__)
-#define jrcalloc(n,x,s) xrcalloc_d((n), (x), (s), __LINE__, __FILE__)
-#define jrrealloc(p,n,x) xrrealloc_d((p), (n), (x), __LINE__, __FILE__)
+#define jxfree(p) xfree_d((p), __LINE__, __FILE__)
 
 #endif
 

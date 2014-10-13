@@ -1,5 +1,3 @@
-#ifndef NDEBUG
-
 #include "main.h"
 #include "alloc.h"
 
@@ -7,9 +5,26 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define INIT_ALLOC_MIN_BUF_SIZE 32
+
+#ifdef JEMALLOC
+
+#define MALLOC(n) jemalloc(n)
+#define CALLOC(n,s) jecalloc((n), (s))
+#define REALLOC(p,n) jerealloc((p), (n))
+#define FREE(p) jefree((void *)(p))
+
+#else
+
+#define MALLOC(n) malloc(n)
+#define CALLOC(n,s) calloc((n), (s))
+#define REALLOC(p,n) realloc((p), (n))
+#define FREE(p) free((void *)(p))
+
+#endif
 
 static size_t alloc_min_buf_size = INIT_ALLOC_MIN_BUF_SIZE;
 
@@ -38,29 +53,22 @@ struct mem_info {
     const char *post_buf;
 };
 
-static inline void
-alloc_error(const char *format, ...)
-{
-    va_list vl;
-
-    va_start(vl, format);
-
-    vfprintf(stderr, format, vl);
-
-    va_end(vl);
-}
-
 // The line might not always be exactly right, but it should be close enough to
 // identify where the error occured
 static void
-mem_fail(size_t bytes, int line, const char *file)
+mem_fail(size_t bytes, int line, const char *file) NONNULL
 {
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
-    alloc_error("Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
-                line, file, bytes);
+    fprintf(stderr, "Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
+            line, file, bytes);
 }
+
+// TODO - Optimize the pointer info storage. Right now, it each pointer
+// addition/removal causes an allocation/deallocation, which shouldn't be
+// necessary. Maybe adapt ptrvec to a vector of struct ptr_info? Or maybe use a
+// tree to get O(log(n)) insertion, removal, and deletion?
 
 struct ptr_info {
     const void *ptr;
@@ -71,14 +79,14 @@ static struct ptr_info *ptr_infos = NULL;
 static size_t n_ptr_infos = 0;
 
 static inline int
-add_ptr_info(const void *ptr, size_t bytes)
+add_ptr_info(const void *ptr, size_t bytes) NONNULL
 {
     void *tmp;
 
     ASSUME(ptr != NULL);
     ASSUME(bytes > 0);
 
-    tmp = realloc(ptr_infos, n_ptr_infos + 1);
+    tmp = REALLOC(ptr_infos, n_ptr_infos + 1);
     if (ERR(tmp == NULL)) {
         mem_fail(n_ptr_infos + 1, __LINE__, __FILE__);
         return -1;
@@ -93,28 +101,24 @@ add_ptr_info(const void *ptr, size_t bytes)
 }
 
 static inline const void *
-find_ptr_info(const void *ptr)
+find_ptr_info(const void *ptr) NONNULL
 {
     ASSUME(ptr != NULL);
 
-    // Lookups are more likely to be from the more recently allocated pointers
-    for (int i = n_ptr_infos - 1; i >= 0; --i) {
-        for (const char *p = ptr_infos[i].ptr;
-             p != ptr_infos[i].ptr + ptr_infos[i].bytes;
-             ++p) {
-
-            if (p == ptr) {
+    for (size_t i = 0; i < n_ptr_infos; ++i) {
+        for (size_t j = 0; j < ptr_infos[i].bytes; ++j) {
+            if (ptr_infos[i].ptr + j == ptr) {
                 return ptr_infos[i].ptr;
             }
         }
     }
 
-    // pointer not found
+    // Pointer not found
     return NULL;
 }
 
-static inline void
-remove_ptr_info(const void *ptr)
+static inline int
+remove_ptr_info(const void *ptr) NONNULL
 {
     ASSUME(ptr != NULL);
 
@@ -130,42 +134,43 @@ remove_ptr_info(const void *ptr)
         ptr_infos[i] = ptr_infos[--n_ptr_infos];
 
         if (n_ptr_infos == 0) {
-            free(ptr_infos);
+            FREE(ptr_infos);
             ptr_infos = NULL;
         } else {
-            tmp = realloc(ptr_infos, n_ptr_infos);
+            tmp = REALLOC(ptr_infos, n_ptr_infos);
             if (ERR(tmp == NULL)) {
                 mem_fail(n_ptr_infos, __LINE__, __FILE__);
-                return;
+                return -1;
             }
             ptr_infos = tmp;
         }
 
-        return;
+        return 0;
     }
 
     ASSUME_UNREACHABLE();
+
+    return -1;
 }
 
-// void alloc_init(void) does nothing
+// alloc_init() does nothing
 
 void
 alloc_free(void)
 {
     for (int i = n_ptr_infos - 1; i >= 0; --i) {
-        const struct mem_info *mem_info;
+        const struct mem_info *mem_info =
+            (const struct mem_info *)ptr_infos[i].ptr;
 
-        mem_info = (const struct mem_info *)ptr_infos[i].ptr;
+        fprintf(stderr, "Memory not freed!\n\tLine: %i\n\tFile: %s\n"
+                "\tBytes: %u\n\tPointer: %p\n",
+                mem_info->line, mem_info->file, mem_info->bytes,
+                ptr_infos[i]);
 
-        alloc_error("Memory not freed!\n\tLine: %i\n\tFile: %s\n"
-                    "\tBytes: %u\n\tPointer: %p\n",
-                    mem_info->line, mem_info->file, mem_info->bytes,
-                    ptr_infos[i]);
-
-        free((void *)ptr_infos[i].ptr);
+        FREE(ptr_infos[i].ptr);
     }
 
-    free(ptr_infos);
+    FREE(ptr_infos);
 }
 
 static inline const char *
@@ -184,7 +189,7 @@ get_buf(size_t len)
         return NULL;
     }
 
-    for (int i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
         do {
             str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
         } while (str[i] == '\0');
@@ -195,8 +200,8 @@ get_buf(size_t len)
     return str;
 }
 
-void *
-malloc_d(size_t n, int line, const char *file)
+static void *
+alloc_d(size_t n, int clear, int line, const char *file) NONNULL
 {
     char *ptr, *tmp;
     uintptr_t align;
@@ -210,11 +215,13 @@ malloc_d(size_t n, int line, const char *file)
         return NULL;
     }
 
-    ptr = malloc(n);
+    ptr = clear ? CALLOC(n) : MALLOC(n);
     if (ERR(ptr == NULL)) {
         mem_fail(n, line, file);
         return NULL;
     }
+
+    // TODO - optimize align into bitwise ops
 
     align = (uintptr_t)ptr;
     align &= -align;
@@ -231,17 +238,21 @@ malloc_d(size_t n, int line, const char *file)
     }
     size += buf_size * 2;
 
-    tmp = realloc(ptr, size);
+    tmp = REALLOC(ptr, size);
     if (ERR(tmp == NULL)) {
-        free(ptr);
+        FREE(ptr);
         mem_fail(size, line, file);
 
         return NULL;
     }
     ptr = tmp;
 
+    if (clear) {
+        memset(ptr + n, 0, size - n);
+    }
+
     if (add_ptr_info(ptr, size) != 0) {
-        free(ptr);
+        FREE(ptr);
         return NULL;
     }
 
@@ -260,22 +271,23 @@ malloc_d(size_t n, int line, const char *file)
 }
 
 void *
-calloc_d(size_t n, size_t size, int line, const char *file)
+malloc_d(size_t n, int line, const char *file)
 {
-    void *ptr;
-
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
-    ptr = malloc_d(n * size, line, file);
-    if (ERR(ptr == NULL)) {
-        // mem_fail called in malloc_d
-        return NULL;
-    }
+    return alloc_d(n, 0, line, file);
+}
 
-    memset(ptr, 0, n * size);
+void *
+calloc_d(size_t n, size_t size, int line, const char *file)
+{
+    ASSUME(line >= 0);
+    ASSUME(file != NULL);
 
-    return ptr;
+    // TODO - check for overflow in n * size
+
+    return alloc_d(n * size, 1, line, file);
 }
 
 void *
@@ -283,7 +295,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 {
     const char *old_ptr;
     char *new_ptr;
-    const struct mem_info *mem_info;
+    struct mem_info *mem_info;
 
     ASSUME(line >= 0);
     ASSUME(file != NULL);
@@ -292,27 +304,36 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return malloc_d(n, line, file);
     }
 
-    if (n == 0) {
+    if (ERR(n == 0)) {
+        fprintf(stderr, "Warning: realloc(ptr, 0) is not portable, since it\n"
+                "may or may not free ptr.\n\tLine: %i\n\tFile: %s\n"
+                "\tPointer: %p\n",
+                line, file, ptr);
+
+        free_d(ptr, line, file);
+
         return NULL;
     }
 
     old_ptr = find_ptr_info(ptr);
-    if (old_ptr == NULL) {
-        alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
-                    "\tPointer: %p\n\tProblem: Pointer not allocated",
-                    line, file, ptr);
+    if (ERR(old_ptr == NULL)) {
+        fprintf(stderr,
+                "Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
+                "\tPointer: %p\n\tProblem: Pointer not allocated",
+                line, file, ptr);
 
         return NULL;
     }
 
-    mem_info = (const struct mem_info *)old_ptr;
+    mem_info = (struct mem_info *)old_ptr;
 
-    if (ptr != old_ptr + sizeof(struct mem_info)
-        + strlen((mem_info->pre_buf))) {
+    if (ERR(ptr != old_ptr + sizeof(struct mem_info)
+        + strlen((mem_info->pre_buf)))) {
 
-        alloc_error("Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
-                    "\tPointer: %p\n\tProblem: Pointer shifted",
-                    line, file, ptr);
+        fprintf(stderr,
+                "Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
+                "\tPointer: %p\n\tProblem: Pointer shifted",
+                line, file, ptr);
 
         return NULL;
     }
@@ -326,74 +347,76 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     memcpy(new_ptr, ptr, mem_info->bytes < n ? mem_info->bytes : n);
 
     remove_ptr_info(old_ptr);
-    free((void *)old_ptr);
+    FREE(old_ptr);
 
     return new_ptr;
 }
 
-void
-free_d(const void *ptr, int line, const char *file)
+static int
+do_free_d(void *ptr, int x, int line, const char *file) NONNULL_AT(3)
 {
+    int err;
     const char *ptr_info;
     const char *p;
     const struct mem_info *mem_info;
     size_t pre_len, post_len;
 
+    ASSUME(IMPLIES(x, ptr != NULL));
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
     if (ptr == NULL) {
-        return;
+        return 0;
     }
 
     ptr_info = find_ptr_info(ptr);
-    if (ptr_info == NULL) {
-        alloc_error("Freeing unallocated pointer!\n\tLine: %i\n\tFile: %s\n"
-                    "\tPointer: %p\n",
-                    line, file, ptr);
+    if (ERR(ptr_info == NULL)) {
+        fprintf(stderr, "Freeing unallocated pointer!\n\tLine: %i\n"
+                "\tFile: %s\n\tPointer: %p\n",
+                line, file, ptr);
 
-        return;
+        return -1;
     }
 
     mem_info = (const struct mem_info *)ptr_info;
     p = ptr_info + sizeof(struct mem_info);
     pre_len = strlen(mem_info->pre_buf);
 
-    if (ptr != p + pre_len) {
-        alloc_error("Freeing shifted pointer!\n"
-                    "\tLine allocated: %i\n\tFile allocated: %s\n"
-                    "\tLine freed: %i\n\tFile freed: %s\n"
-                    "\tBytes: %u\n"
-                    "\tPointer: %p\n\tOffset: %td\n",
-                    mem_info->line, mem_info->file, line, file, mem_info->bytes,
-                    p + pre_len, (const char *)ptr - (p + pre_len));
+    err = 0;
 
-        remove_ptr_info(ptr_info);
-        free((void *)ptr_info);
+    if (ERR(ptr != p + pre_len)) {
+        fprintf(stderr, "Freeing shifted pointer!\n"
+                "\tLine allocated: %i\n\tFile allocated: %s\n"
+                "\tLine freed: %i\n\tFile freed: %s\n"
+                "\tBytes: %u\n"
+                "\tPointer: %p\n\tOffset: %td\n",
+                mem_info->line, mem_info->file, line, file, mem_info->bytes,
+                p + pre_len, (const char *)ptr - (p + pre_len));
 
-        return;
+        err = -1;
     }
 
-    // Start closer to the actual data, because overflows are more likely there
-    for (int i = pre_len - 1; i >= 0; --i) {
-        if (p[i] != mem_info->pre_buf[i]) {
-            alloc_error("Memory overflow!\n"
-                        "\tLine allocated: %i\n\tFile allocated: %s\n"
-                        "\tLine freed: %i\n\tFile freed: %s\n"
-                        "\tOld value: %i\n\tNew value: %i\n"
-                        "\tBytes: %u\n\tOverwriten byte: %i\n\tPointer: %p\n",
-                        mem_info->line, mem_info->file, line, file,
-                        (int)mem_info->pre_buf[i], (int)p[i], mem_info->bytes,
-                        i - (int)pre_len, ptr);
+    for (size_t i = 0; i < pre_len; ++i) {
+        if (ERR(p[i] != mem_info->pre_buf[i])) {
+            fprintf(stderr, "Memory overflow!\n"
+                    "\tLine allocated: %i\n\tFile allocated: %s\n"
+                    "\tLine freed: %i\n\tFile freed: %s\n"
+                    "\tOld value: %i\n\tNew value: %i\n"
+                    "\tBytes: %u\n\tOverwriten byte: %i\n\tPointer: %p\n",
+                    mem_info->line, mem_info->file, line, file,
+                    (int)mem_info->pre_buf[i], (int)p[i], mem_info->bytes,
+                    i - (int)pre_len, ptr);
+
+            err = -1;
         }
     }
 
     post_len = strlen(mem_info->post_buf);
     p += pre_len + mem_info->bytes;
 
-    for (int i = 0; i < post_len; ++i) {
-        if (p[i] != mem_info->post_buf[i]) {
-            alloc_error("Memory overflow!\n"
+    for (size_t i = 0; i < post_len; ++i) {
+        if (ERR(p[i] != mem_info->post_buf[i])) {
+            fprintf(stderr, "Memory overflow!\n"
                         "\tLine allocated: %i\n\tFile allocated: %s\n"
                         "\tLine freed: %i\n\tFile freed: %s\n"
                         "\tOld value: %i\n\tNew value: %i\n"
@@ -402,11 +425,184 @@ free_d(const void *ptr, int line, const char *file)
                         mem_info->line, mem_info->file, line, file,
                         (int)mem_info->post_buf[i], (int)p[i], mem_info->bytes,
                         mem_info->bytes + i, ptr);
+
+            err = -1;
         }
     }
 
     remove_ptr_info(ptr_info);
-    free((void *)ptr_info);
+    FREE(ptr_info);
+
+    return err;
+}
+
+void
+free_d(void *ptr, int line, const char *file)
+{
+    do_free_d(ptr, line, file);
+}
+
+#ifdef XMALLOC
+
+#define XMALLOC_ERR_MSG "Out of memory for xmalloc.\nAborting now.\n"
+#define XCALLOC_ERR_MSG "Out of memory for xcalloc.\nAborting now.\n"
+#define XREALLOC_ERR_MSG "Out of memory for xrealloc.\nAborting now.\n"
+#define XFREE_ERR_MSG "Unable to free memory in xfree.\nAborting now.\n"
+
+void *
+xmalloc(size_t n)
+{
+    void *ptr;
+
+    ASSUME(n > 0);
+
+    ptr = MALLOC(n);
+    if (ERR(ptr == NULL)) {
+        fputs(stderr, XMALLOC_ERR_MSG);
+        abort();
+    }
+
+    return ptr;
+}
+
+void *
+xcalloc(size_t n, size_t size)
+{
+    void *ptr;
+
+    ASSUME(n > 0);
+    ASSUME(size > 0);
+
+    ptr = CALLOC(n, size);
+    if (ERR(ptr == NULL)) {
+        fputs(stderr, XCALLOC_ERR_MSG);
+        abort();
+    }
+
+    return ptr;
+}
+
+void *
+xrealloc(void *ptr, size_t n)
+{
+    ASSUME(n > 0);
+
+    ptr = REALLOC(ptr, n);
+    if (ERR(ptr == NULL)) {
+        fputs(stderr, XREALLOC_ERR_MSG);
+        abort();
+    }
+
+    return ptr;
+}
+
+void *
+xmalloc_d(size_t n, int line, const char *file)
+{
+    void *ptr;
+
+    ASSUME(line >= 0);
+    ASSUME(file != NULL);
+
+    if (ERR(n == 0)) {
+        fprintf(stderr, "Cannot allocate 0 bytes in xmalloc.\n\tLine: %i\n"
+                "\tFile: %s\nAborting now.\n",
+                line, file);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
+
+    ASSUME(n != 0);
+
+    ptr = malloc_d(n, line, file);
+    if (ERR(ptr == NULL)) {
+        fputs(stderr, XMALLOC_ERR_MSG);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
+
+    return ptr;
+}
+
+void *
+xcalloc_d(size_t n, size_t size, int line, const char *file)
+{
+    void *ptr;
+
+    ASSUME(line >= 0);
+    ASSUME(file != NULL);
+
+    if (ERR(n == 0) || ERR(size == 0)) {
+        fprintf(stderr, "Cannot allocate 0 bytes in xcalloc.\n\tLine: %i\n"
+                "\tFile: %s\nAborting now.\n",
+                line, file);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
+
+    ASSUME(n > 0);
+    ASSUME(size > 0);
+
+    ptr = calloc_d(n, size, line, file);
+    if (ERR(ptr == NULL)) {
+        fputs(stderr, XCALLOC_ERR_MSG);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
+
+    return ptr;
+}
+
+void *
+xrealloc_d(void *ptr, size_t n, int line, const char *file)
+{
+    void *ptr;
+
+    ASSUME(line >= 0);
+    ASSUME(file != NULL);
+
+    if (ERR(n == 0)) {
+        fprintf(stderr, "Cannot allocate 0 bytes in xrealloc.\n\tLine: %i\n"
+                "\tFile: %s\nAborting now.\n",
+                line, file);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
+
+    ASSUME(n > 0);
+
+    ptr = realloc_d(ptr, n, line, file);
+    if (ERR(ptr == NULL)) {
+        fputs(stderr, XREALLOC_ERR_MSG);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
+
+    return ptr;
+}
+
+void
+xfree_d(void *ptr, int line, const char *file)
+{
+    if (ERR(do_free_d(ptr, line, file) != 0)) {
+        fputs(stderr, XFREE_ERR_MSG);
+
+        abort();
+
+        ASSUME_UNREACHABLE();
+    }
 }
 
 #endif
