@@ -55,8 +55,8 @@ struct mem_info {
 
 // The line might not always be exactly right, but it should be close enough to
 // identify where the error occured
-static void
-mem_fail(size_t bytes, int line, const char *file) NONNULL
+static void NONNULL
+mem_fail(size_t bytes, int line, const char *file)
 {
     ASSUME(line >= 0);
     ASSUME(file != NULL);
@@ -78,8 +78,8 @@ struct ptr_info {
 static struct ptr_info *ptr_infos = NULL;
 static size_t n_ptr_infos = 0;
 
-static inline int
-add_ptr_info(const void *ptr, size_t bytes) NONNULL
+static inline int NONNULL
+add_ptr_info(const void *ptr, size_t bytes)
 {
     void *tmp;
 
@@ -100,14 +100,14 @@ add_ptr_info(const void *ptr, size_t bytes) NONNULL
     return 0;
 }
 
-static inline const void *
-find_ptr_info(const void *ptr) NONNULL
+static inline const void * NONNULL
+find_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
 
     for (size_t i = 0; i < n_ptr_infos; ++i) {
         for (size_t j = 0; j < ptr_infos[i].bytes; ++j) {
-            if (ptr_infos[i].ptr + j == ptr) {
+            if ((const char *)ptr_infos[i].ptr + j == ptr) {
                 return ptr_infos[i].ptr;
             }
         }
@@ -117,8 +117,8 @@ find_ptr_info(const void *ptr) NONNULL
     return NULL;
 }
 
-static inline int
-remove_ptr_info(const void *ptr) NONNULL
+static inline int NONNULL
+remove_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
 
@@ -200,8 +200,8 @@ get_buf(size_t len)
     return str;
 }
 
-static void *
-alloc_d(size_t n, int clear, int line, const char *file) NONNULL
+static void * NONNULL
+alloc_d(size_t n, int clear, int line, const char *file)
 {
     char *ptr, *tmp;
     uintptr_t align;
@@ -215,7 +215,7 @@ alloc_d(size_t n, int clear, int line, const char *file) NONNULL
         return NULL;
     }
 
-    ptr = clear ? CALLOC(n) : MALLOC(n);
+    ptr = clear ? CALLOC(n, 1) : MALLOC(n);
     if (ERR(ptr == NULL)) {
         mem_fail(n, line, file);
         return NULL;
@@ -352,8 +352,8 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     return new_ptr;
 }
 
-static int
-do_free_d(void *ptr, int x, int line, const char *file) NONNULL_AT(3)
+static int NONNULL_AT(3)
+do_free_d(void *ptr, int line, const char *file)
 {
     int err;
     const char *ptr_info;
@@ -361,7 +361,6 @@ do_free_d(void *ptr, int x, int line, const char *file) NONNULL_AT(3)
     const struct mem_info *mem_info;
     size_t pre_len, post_len;
 
-    ASSUME(IMPLIES(x, ptr != NULL));
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 

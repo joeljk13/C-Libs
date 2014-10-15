@@ -42,7 +42,7 @@ void
 alloc_free(void);
 
 void *
-alloc_d(size_t n, int line, const char *file);
+malloc_d(size_t n, int line, const char *file);
 
 void *
 calloc_d(size_t n, size_t size, int line, const char *file);
@@ -103,6 +103,8 @@ xfree_d(void *ptr, int line, const char *file) NONNULL;
 #define jxcalloc(n,s) xcalloc_d((n), (s), __LINE__, __FILE__)
 #define jxrealloc(p,n) xrealloc_d((p), (n), __LINE__, __FILE__)
 #define jxfree(p) xfree_d((p), __LINE__, __FILE__)
+
+#endif
 
 #endif
 

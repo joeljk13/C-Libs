@@ -1,7 +1,6 @@
 #include "main.h"
 
 #include "alloc.h"
-#include "stack.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -22,6 +21,9 @@ int main(int argc, char *argv[])
     srand(time(NULL));
 
 #endif
+
+    void *ptr = jmalloc(1);
+    jfree(ptr);
 
     return 0;
 }

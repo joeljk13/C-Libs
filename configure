@@ -1,0 +1,67 @@
+#!/bin/sh
+
+SRCS="alloc.c main.c"
+
+PARAMS="-std=c99"
+
+DEBUG=true
+
+OPTIMIZATION="-O"
+
+WARNINGS=""
+
+ERRS="-pedantic-errors"
+
+DEFS=""
+
+EXEC="test"
+
+LINKS=""
+
+CPARAMS="$PARAMS $OPTIMIZATION $WARNINGS $ERRS"
+
+if $DEBUG
+then
+    CPARAMS="$CPARAMS -g -Og -DDEBUG"
+else
+    CPARAMS="$CPARAMS $OPTIMIZATION -DNDEBUG"
+fi
+
+for DEF in $DEFS
+do
+    CPARAMS="$CPARAMS -D$DEF"
+done
+
+LPARAMS=""
+
+LLINKS=""
+
+if ! $DEBUG
+then
+    LPARAMS="$LPARAMS $OPTIMIZATION"
+fi
+
+for LINK in $LINKS
+do
+    LPARAMS="$LPARAMS -l$LINK"
+done
+
+printf "
+SHELL = /bin/sh
+SRCS = %s
+OBJS = \$(SRCS:.c=.o)
+%s: \$(OBJS)
+\tgcc -o \$@ %s \$^ %s
+" "$SRCS" "$EXEC" "$LPARAMS" "$LLINKS" > Makefile
+
+for SRC in $SRCS
+do
+    printf "%s\n\tgcc -c -o \$@ %s \$<\n" "$(gcc -MM $SRC)" "$CPARAMS" >> \
+        Makefile
+done
+
+printf "
+.PHONY: clean
+clean:
+\trm -f *.o %s
+" "$EXEC" >> Makefile
