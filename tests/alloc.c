@@ -6,8 +6,5 @@ main(void)
 {
     void *ptr;
 
-    ptr = jmalloc(1);
-    jfree(ptr);
-
     return 0;
 }

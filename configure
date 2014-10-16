@@ -87,5 +87,5 @@ done
 printf "
 .PHONY: clean
 clean:
-\trm -rf %s $(find -name "*.o" | tr "\n" " ")
+\trm -rf %s \$(SRCOBJS) \$(TESTOBJS)
 " "$EXEC" >> $MAKEFILE
