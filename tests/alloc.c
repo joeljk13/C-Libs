@@ -1,10 +1,12 @@
 #include "../src/main.h"
 #include "../src/alloc.h"
 
+#include <stdio.h>
+
 int
 main(void)
 {
-    void *ptr;
+    printf("Hello world!\n");
 
-    return 0;
+    return 1;
 }

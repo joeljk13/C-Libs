@@ -53,7 +53,7 @@ SHELL = /bin/sh
 SRCS = %s
 SRCOBJS = \$(SRCS:.$EXT=.o)
 TESTS = %s
-TESTOBJS = \$(TESTS:$EXT=.o)
+TESTOBJS = \$(TESTS:.$EXT=.o)
 CPARAMS = %s
 LPARAMS = %s
 LINKS = $LLINKS
@@ -77,7 +77,7 @@ do
     # the rm check \$@ could use -f, but it shouldn't be necessary
     printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(CPARAMS) \$< \
         \n\t$CC -o check \$(LPARAMS) \$@ %s \$(LINKS) \
-        \n\tif ! ./check; then echo 'check failed'; fi \
+        \n\ttput setaf 2; if ! ./check; then tput setaf 1; echo 'Check failed!'; tput sgr 0; rm check; exit 1; else tput sgr 0; fi \
         \n\trm check \$@" \
         "$($CC -MM $TEST)" \
         "$(printf "%s" "$TEST" | sed -e "s/$TESTDIR/$SRCDIR/" | \
