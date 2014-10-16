@@ -1,22 +1,24 @@
 #!/bin/sh
 
-SRCS="alloc.c main.c"
-
 PARAMS="-std=c99"
-
 DEBUG=true
-
 OPTIMIZATION="-O"
-
 WARNINGS=""
-
 ERRS="-pedantic-errors"
-
 DEFS=""
-
 EXEC="test"
-
 LINKS=""
+SRCDIR="src"
+TESTDIR="tests"
+CC="gcc"
+MAKEFILE="Makefile"
+EXT="c"
+
+SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
+TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
+
+# temp
+SRCS="./src/alloc.c ./src/main.c"
 
 CPARAMS="$PARAMS $WARNINGS $ERRS"
 
@@ -49,19 +51,41 @@ done
 printf "
 SHELL = /bin/sh
 SRCS = %s
-OBJS = \$(SRCS:.c=.o)
-%s: \$(OBJS)
-\tgcc -o \$@ %s \$^ %s
-" "$SRCS" "$EXEC" "$LPARAMS" "$LLINKS" > Makefile
+SRCOBJS = \$(SRCS:.$EXT=.o)
+TESTS = %s
+TESTOBJS = \$(TESTS:$EXT=.o)
+CPARAMS = %s
+LPARAMS = %s
+LINKS = $LLINKS
+%s: \$(SRCOBJS)
+\t$CC -o \$@ \$(LPARAMS) \$^ \$(LINKS)
+" "$SRCS" "$TESTS" "$CPARAMS" "$LPARAMS" "$EXEC" > $MAKEFILE
 
 for SRC in $SRCS
 do
-    printf "%s\n\tgcc -c -o \$@ %s \$<\n" "$(gcc -MM $SRC)" "$CPARAMS" >> \
-        Makefile
+    printf "$SRCDIR/%s\n\t$CC -c -o \$@ \$(CPARAMS) \$<\n" "$($CC -MM $SRC)" >> \
+        $MAKEFILE
+done
+
+printf "
+.PHONY: check
+check: \$(TESTOBJS) ;
+" >> $MAKEFILE
+
+for TEST in $TESTS
+do
+    # the rm check \$@ could use -f, but it shouldn't be necessary
+    printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(CPARAMS) \$< \
+        \n\t$CC -o check \$(LPARAMS) \$@ %s \$(LINKS) \
+        \n\tif ! ./check; then echo 'check failed'; fi \
+        \n\trm check \$@" \
+        "$($CC -MM $TEST)" \
+        "$(printf "%s" "$TEST" | sed -e "s/$TESTDIR/$SRCDIR/" | \
+            sed -e "s/$EXT\$/o/")" >> $MAKEFILE
 done
 
 printf "
 .PHONY: clean
 clean:
-\trm -f *.o %s
-" "$EXEC" >> Makefile
+\trm -rf %s $(find -name "*.o" | tr "\n" " ")
+" "$EXEC" >> $MAKEFILE

@@ -22,8 +22,7 @@ int main(int argc, char *argv[])
 
 #endif
 
-    void *ptr = jmalloc(1);
-    jfree(ptr);
+    printf("Hello world!\n");
 
     return 0;
 }

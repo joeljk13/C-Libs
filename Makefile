@@ -1,14 +1,27 @@
 
 SHELL = /bin/sh
-SRCS = alloc.c main.c
-OBJS = $(SRCS:.c=.o)
-test: $(OBJS)
-	gcc -o $@  $^ 
-alloc.o: alloc.c main.h alloc.h
-	gcc -c -o $@ -std=c99  -pedantic-errors -g -Og -DDEBUG $<
-main.o: main.c main.h alloc.h
-	gcc -c -o $@ -std=c99  -pedantic-errors -g -Og -DDEBUG $<
+SRCS = ./src/alloc.c ./src/main.c
+SRCOBJS = $(SRCS:.c=.o)
+TESTS = ./tests/alloc.c 
+TESTOBJS = $(TESTS:c=.o)
+CPARAMS = -std=c99  -pedantic-errors -g -Og -DDEBUG
+LPARAMS = 
+LINKS = 
+test: $(SRCOBJS)
+	gcc -o $@ $(LPARAMS) $^ $(LINKS)
+src/alloc.o: src/alloc.c src/main.h src/alloc.h
+	gcc -c -o $@ $(CPARAMS) $<
+src/main.o: src/main.c src/main.h src/alloc.h
+	gcc -c -o $@ $(CPARAMS) $<
 
+.PHONY: check
+check: $(TESTOBJS) ;
+tests/alloc.o: tests/alloc.c tests/../src/main.h tests/../src/alloc.h \
+ tests/../src/main.h
+	gcc -c -o $@ $(CPARAMS) $<         
+	gcc -o check $(LPARAMS) $@ ./src/alloc.o $(LINKS)         
+	if ! ./check; then echo 'check failed'; fi         
+	rm check $@
 .PHONY: clean
 clean:
-	rm -f *.o test
+	rm -rf test ./src/stack.o ./src/alloc.o ./src/main.o 
