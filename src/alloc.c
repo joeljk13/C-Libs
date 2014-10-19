@@ -26,6 +26,8 @@
 
 #endif
 
+#ifndef NDEBUG
+
 static size_t alloc_min_buf_size = INIT_ALLOC_MIN_BUF_SIZE;
 
 void
@@ -91,8 +93,8 @@ add_ptr_info(const void *ptr, size_t bytes)
         mem_fail(n_ptr_infos + 1, __LINE__, __FILE__);
         return -1;
     }
-
     ptr_infos = tmp;
+
     ptr_infos[n_ptr_infos].ptr = ptr;
     ptr_infos[n_ptr_infos].bytes = bytes;
     ++n_ptr_infos;
@@ -238,14 +240,14 @@ alloc_d(size_t n, int clear, int line, const char *file)
     }
     size += buf_size * 2;
 
-    tmp = REALLOC(ptr, size);
-    if (ERR(tmp == NULL)) {
-        FREE(ptr);
+    FREE(ptr);
+
+    ptr = calloc(size, 1);
+    if (ERR(ptr == NULL)) {
         mem_fail(size, line, file);
 
         return NULL;
     }
-    ptr = tmp;
 
     if (clear) {
         memset(ptr + n, 0, size - n);
@@ -300,9 +302,13 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
+    puts("1");
+
     if (ptr == NULL) {
         return malloc_d(n, line, file);
     }
+
+    puts("2");
 
     if (ERR(n == 0)) {
         fprintf(stderr, "Warning: realloc(ptr, 0) is not portable, since it\n"
@@ -315,15 +321,19 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
+    puts("3");
+
     old_ptr = find_ptr_info(ptr);
     if (ERR(old_ptr == NULL)) {
         fprintf(stderr,
                 "Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
-                "\tPointer: %p\n\tProblem: Pointer not allocated",
+                "\tPointer: %p\n\tProblem: Pointer not allocated\n",
                 line, file, ptr);
 
         return NULL;
     }
+
+    puts("4");
 
     mem_info = (struct mem_info *)old_ptr;
 
@@ -332,11 +342,13 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 
         fprintf(stderr,
                 "Reallocating invalid pointer!\n\tLine: %i\n\tFile: %s\n"
-                "\tPointer: %p\n\tProblem: Pointer shifted",
+                "\tPointer: %p\n\tProblem: Pointer shifted\n",
                 line, file, ptr);
 
         return NULL;
     }
+
+    puts("5");
 
     new_ptr = malloc_d(n, line, file);
     if (ERR(new_ptr == NULL)) {
@@ -344,10 +356,19 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
+    puts("6");
+
     memcpy(new_ptr, ptr, mem_info->bytes < n ? mem_info->bytes : n);
 
+    puts("7");
+
     remove_ptr_info(old_ptr);
+
+    puts("8");
+
     FREE(old_ptr);
+
+    puts("9");
 
     return new_ptr;
 }
@@ -441,6 +462,8 @@ free_d(void *ptr, int line, const char *file)
     do_free_d(ptr, line, file);
 }
 
+#endif
+
 #ifdef XMALLOC
 
 #define XMALLOC_ERR_MSG "Out of memory for xmalloc.\nAborting now.\n"
@@ -457,7 +480,7 @@ xmalloc(size_t n)
 
     ptr = MALLOC(n);
     if (ERR(ptr == NULL)) {
-        fputs(stderr, XMALLOC_ERR_MSG);
+        fputs(XMALLOC_ERR_MSG, stderr);
         abort();
     }
 
@@ -474,7 +497,7 @@ xcalloc(size_t n, size_t size)
 
     ptr = CALLOC(n, size);
     if (ERR(ptr == NULL)) {
-        fputs(stderr, XCALLOC_ERR_MSG);
+        fputs(XCALLOC_ERR_MSG, stderr);
         abort();
     }
 
@@ -488,12 +511,14 @@ xrealloc(void *ptr, size_t n)
 
     ptr = REALLOC(ptr, n);
     if (ERR(ptr == NULL)) {
-        fputs(stderr, XREALLOC_ERR_MSG);
+        fputs(XREALLOC_ERR_MSG, stderr);
         abort();
     }
 
     return ptr;
 }
+
+#ifndef NDEBUG
 
 void *
 xmalloc_d(size_t n, int line, const char *file)
@@ -517,7 +542,7 @@ xmalloc_d(size_t n, int line, const char *file)
 
     ptr = malloc_d(n, line, file);
     if (ERR(ptr == NULL)) {
-        fputs(stderr, XMALLOC_ERR_MSG);
+        fputs(XMALLOC_ERR_MSG, stderr);
 
         abort();
 
@@ -550,7 +575,7 @@ xcalloc_d(size_t n, size_t size, int line, const char *file)
 
     ptr = calloc_d(n, size, line, file);
     if (ERR(ptr == NULL)) {
-        fputs(stderr, XCALLOC_ERR_MSG);
+        fputs(XCALLOC_ERR_MSG, stderr);
 
         abort();
 
@@ -563,8 +588,6 @@ xcalloc_d(size_t n, size_t size, int line, const char *file)
 void *
 xrealloc_d(void *ptr, size_t n, int line, const char *file)
 {
-    void *ptr;
-
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
@@ -582,7 +605,7 @@ xrealloc_d(void *ptr, size_t n, int line, const char *file)
 
     ptr = realloc_d(ptr, n, line, file);
     if (ERR(ptr == NULL)) {
-        fputs(stderr, XREALLOC_ERR_MSG);
+        fputs(XREALLOC_ERR_MSG, stderr);
 
         abort();
 
@@ -596,12 +619,14 @@ void
 xfree_d(void *ptr, int line, const char *file)
 {
     if (ERR(do_free_d(ptr, line, file) != 0)) {
-        fputs(stderr, XFREE_ERR_MSG);
+        fputs(XFREE_ERR_MSG, stderr);
 
         abort();
 
         ASSUME_UNREACHABLE();
     }
 }
+
+#endif
 
 #endif

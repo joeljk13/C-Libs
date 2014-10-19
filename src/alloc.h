@@ -9,6 +9,12 @@
 #include <jemalloc/jemalloc.h>
 #endif
 
+#ifndef NDEBUG
+
+#define XMALLOC
+
+#endif
+
 #ifdef NDEBUG
 
 #define alloc_size(s) ((void)0)
