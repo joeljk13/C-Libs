@@ -107,6 +107,18 @@ find_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
 
+    // Lookups are more likely to be from the more recently allocated pointers
+    for (int i = n_ptr_infos - 1; i >= 0; --i) {
+        for (const char *p = ptr_infos[i].ptr;
+             p != (const char *)ptr_infos[i].ptr + ptr_infos[i].bytes;
+             ++p) {
+            if (p == ptr) {
+                return ptr_infos[i].ptr;
+            }
+        }
+    }
+
+    /*
     for (size_t i = 0; i < n_ptr_infos; ++i) {
         for (size_t j = 0; j < ptr_infos[i].bytes; ++j) {
             if ((const char *)ptr_infos[i].ptr + j == ptr) {
@@ -114,6 +126,7 @@ find_ptr_info(const void *ptr)
             }
         }
     }
+    */
 
     // Pointer not found
     return NULL;
@@ -223,6 +236,8 @@ alloc_d(size_t n, int clear, int line, const char *file)
         return NULL;
     }
 
+    fprintf(stderr, "\tAllocating %p: %u bytes\n", ptr, n);
+
     // TODO - optimize align into bitwise ops
 
     align = (uintptr_t)ptr;
@@ -240,14 +255,25 @@ alloc_d(size_t n, int clear, int line, const char *file)
     }
     size += buf_size * 2;
 
-    FREE(ptr);
+    fprintf(stderr, "\talign = %u\n\tsizeof(struct mem_info) = %u\n"
+            "\talloc_min_buf_size = %u\n\tn = %u\n\tremainder = %u\n"
+            "\tsize = %u\n",
+            (unsigned int)align, (unsigned int)sizeof(struct mem_info),
+            (unsigned int)alloc_min_buf_size, (unsigned int )n,
+            (unsigned int)remainder, (unsigned int)size);
 
-    ptr = calloc(size, 1);
-    if (ERR(ptr == NULL)) {
+    fprintf(stderr, "\tReallocating %p: %u bytes\n", ptr, size);
+
+    tmp = REALLOC(ptr, size);
+    if (ERR(tmp == NULL)) {
+        FREE(ptr);
         mem_fail(size, line, file);
 
         return NULL;
     }
+    ptr = tmp;
+
+    fprintf(stderr, "\tNew pointer: %p\n", ptr);
 
     if (clear) {
         memset(ptr + n, 0, size - n);
@@ -302,13 +328,13 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
-    puts("1");
+    fprintf(stderr, "1\n");
 
     if (ptr == NULL) {
         return malloc_d(n, line, file);
     }
 
-    puts("2");
+    fprintf(stderr, "2\n");
 
     if (ERR(n == 0)) {
         fprintf(stderr, "Warning: realloc(ptr, 0) is not portable, since it\n"
@@ -321,7 +347,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
-    puts("3");
+    fprintf(stderr, "3\n");
 
     old_ptr = find_ptr_info(ptr);
     if (ERR(old_ptr == NULL)) {
@@ -333,7 +359,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
-    puts("4");
+    fprintf(stderr, "4\n");
 
     mem_info = (struct mem_info *)old_ptr;
 
@@ -348,7 +374,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
-    puts("5");
+    fprintf(stderr, "5\n");
 
     new_ptr = malloc_d(n, line, file);
     if (ERR(new_ptr == NULL)) {
@@ -356,19 +382,21 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
-    puts("6");
+    fprintf(stderr, "6\n");
 
     memcpy(new_ptr, ptr, mem_info->bytes < n ? mem_info->bytes : n);
 
-    puts("7");
+    fprintf(stderr, "7\n");
 
     remove_ptr_info(old_ptr);
 
-    puts("8");
+    fprintf(stderr, "8\n");
+
+    fprintf(stderr, "\tFreeing %p\n", old_ptr);
 
     FREE(old_ptr);
 
-    puts("9");
+    fprintf(stderr, "9\n");
 
     return new_ptr;
 }
@@ -451,6 +479,9 @@ do_free_d(void *ptr, int line, const char *file)
     }
 
     remove_ptr_info(ptr_info);
+
+    fprintf(stderr, "\tFreeing %p\n", ptr_info);
+
     FREE(ptr_info);
 
     return err;
@@ -498,7 +529,10 @@ xcalloc(size_t n, size_t size)
     ptr = CALLOC(n, size);
     if (ERR(ptr == NULL)) {
         fputs(XCALLOC_ERR_MSG, stderr);
+
         abort();
+
+        ASSUME_UNREACHABLE();
     }
 
     return ptr;

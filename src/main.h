@@ -1,6 +1,8 @@
 #ifndef MAIN_H_
 #define MAIN_H_ 1
 
+// #define JEMALLOC
+
 #include <assert.h>
 #include <stddef.h>
 
@@ -8,7 +10,7 @@
 
 #define NONNULL __attribute__((nonnull))
 #define NONNULL_AT(...) __attribute__((nonnull(__VA_ARGS__)))
-#define RETURNS_NONNULL __attribute((returns_nonnull))
+#define RETURNS_NONNULL __attribute__((returns_nonnull))
 
 #define CONST __attribute__((const))
 

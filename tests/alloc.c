@@ -11,52 +11,49 @@ main(void)
 
     alloc_init();
 
-    puts("A");
+    fprintf(stderr, "A\n");
 
-    // alloc_size(48);
+    alloc_size(1);
 
-    puts("B");
+    fprintf(stderr, "B\n");
 
     ptr = jxmalloc(1);
-    puts("C");
+    fprintf(stderr, "C\n");
     jxfree(ptr);
 
-    puts("D");
+    fprintf(stderr, "D\n");
 
     ptr = jxcalloc(1, 1);
 
-    puts("E");
-
-    // Doesn't work without this
-    // ptr = NULL;
+    fprintf(stderr, "E\n");
 
     ptr = jxrealloc(ptr, 1);
 
-    puts("F");
+    fprintf(stderr, "F\n");
 
     jxfree(ptr);
 
-    puts("G");
+    fprintf(stderr, "G\n");
 
     ptr = jmalloc(1);
 
-    puts("H");
+    fprintf(stderr, "H\n");
 
     jfree(ptr);
 
-    puts("I");
+    fprintf(stderr, "I\n");
 
     ptr = jcalloc(1, 1);
 
-    puts("J");
+    fprintf(stderr, "J\n");
 
     ptr = jrealloc(ptr, 1);
 
-    puts("K");
+    fprintf(stderr, "K\n");
 
     jfree(ptr);
 
-    puts("# TODO - implement alloc tests");
+    fprintf(stderr, "# TODO - implement alloc tests\n");
 
     alloc_free();
 

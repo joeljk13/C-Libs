@@ -7,10 +7,10 @@ WARNINGS=""
 ERRS="-pedantic-errors"
 DEFS=""
 EXEC="test"
-LINKS=""
+LINKS="jemalloc"
 SRCDIR="src"
 TESTDIR="tests"
-CC="gcc"
+CC="clang"
 MAKEFILE="Makefile"
 EXT="c"
 
@@ -45,7 +45,7 @@ fi
 
 for LINK in $LINKS
 do
-    LPARAMS="$LPARAMS -l$LINK"
+    LLINKS="$LLINKS -l$LINK"
 done
 
 printf "
@@ -88,5 +88,5 @@ done
 printf "
 .PHONY: clean
 clean:
-\trm -rf %s \$(SRCOBJS) \$(TESTOBJS)
+\trm -rf %s *.[ios] \$(SRCOBJS) \$(TESTOBJS)
 " "$EXEC" >> $MAKEFILE
