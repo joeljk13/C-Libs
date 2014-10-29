@@ -118,7 +118,7 @@ parse_options(const char *format, struct format_options *options,
     ASSUME(options != NULL);
     ASSUME(index != NULL);
 
-    ASSERT(format[*index] == FORMAT_OPTIONS_BEGIN);
+    ASSERT(format[*index] == FORMAT_OPTIONS_BEGIN, "TODO - error msg");
 
     // Skip the FORMAT_OPTIONS_BEGIN
     for (size_t i = *index + 1; ; ++i) {

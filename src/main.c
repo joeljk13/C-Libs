@@ -12,7 +12,8 @@
 
 #endif
 
-int main(int argc, char *argv[])
+int
+test_main(int argc, char *argv[])
 {
     ASSUME(argc > 0);
 

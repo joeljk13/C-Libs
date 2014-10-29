@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PARAMS="-std=c99 -save-temps"
+PARAMS="-std=c99"
 DEBUG=true
 OPTIMIZATION="-O0"
 WARNINGS=""
@@ -13,12 +13,11 @@ TESTDIR="tests"
 CC="clang"
 MAKEFILE="Makefile"
 EXT="c"
+MAIN="int main(int c,char**v){int ${EXEC}_main(int,char**);return \
+    ${EXEC}_main(c,v);}"
 
 SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
 TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
-
-# temp
-SRCS="./src/alloc.c ./src/main.c"
 
 CPARAMS="$PARAMS $WARNINGS $ERRS"
 
@@ -57,9 +56,11 @@ TESTOBJS = \$(TESTS:.$EXT=.o)
 CPARAMS = %s
 LPARAMS = %s
 LINKS = $LLINKS
-%s: \$(SRCOBJS)
+$EXEC: \$(SRCOBJS) $SRCDIR/$EXEC-main.o
 \t$CC -o \$@ \$(LPARAMS) \$^ \$(LINKS)
-" "$SRCS" "$TESTS" "$CPARAMS" "$LPARAMS" "$EXEC" > $MAKEFILE
+$SRCDIR/$EXEC-main.o:
+\techo '%s' | $CC -c -o \$@ -x $EXT \$(CPARAMS) -
+" "$SRCS" "$TESTS" "$CPARAMS" "$LPARAMS" "$MAIN" > $MAKEFILE
 
 for SRC in $SRCS
 do
@@ -76,17 +77,15 @@ for TEST in $TESTS
 do
     # the rm check \$@ could use -f, but it shouldn't be necessary
     printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(CPARAMS) \$< \
-        \n\t$CC -o check \$(LPARAMS) \$@ %s \$(LINKS) \
+        \n\t$CC -o check \$(LPARAMS) \$@ \$(SRCOBJS) \$(LINKS) \
         \n\ttput setaf 1; if ! ./check; then echo 'Check failed!'; tput sgr 0; rm check; exit 1; else tput sgr 0; fi \
         \n\ttput setaf 2; echo 'Check succeeded!'; tput sgr 0 \
         \n\trm check \$@" \
-        "$($CC -MM $TEST)" \
-        "$(printf "%s" "$TEST" | sed -e "s/$TESTDIR/$SRCDIR/" | \
-            sed -e "s/$EXT\$/o/")" >> $MAKEFILE
+        "$($CC -MM $TEST)" >> $MAKEFILE
 done
 
 printf "
 .PHONY: clean
 clean:
-\trm -rf %s *.[ios] \$(SRCOBJS) \$(TESTOBJS)
+\trm -rf %s *.[ios] \$(SRCOBJS) \$(TESTOBJS) $SRCDIR/$EXEC-main.o
 " "$EXEC" >> $MAKEFILE
