@@ -72,14 +72,14 @@ free_d(void *ptr, int line, const char *file);
  * they print a message to stderr and call abort(). Also, these functions
  * assume that you don't try to allocate 0 bytes. */
 
-void *
-xmalloc(size_t n) MALLOC_LIKE RETURNS_NONNULL;
+void * MALLOC_LIKE RETURNS_NONNULL
+xmalloc(size_t n);
 
-void *
-xcalloc(size_t n, size_t size) MALLOC_LIKE RETURNS_NONNULL;
+void * MALLOC_LIKE RETURNS_NONNULL
+xcalloc(size_t n, size_t size);
 
-void *
-xrealloc(void *ptr, size_t n) RETURNS_NONNULL;
+void * RETURNS_NONNULL
+xrealloc(void *ptr, size_t n);
 
 #ifdef NDEBUG
 
@@ -90,20 +90,17 @@ xrealloc(void *ptr, size_t n) RETURNS_NONNULL;
 
 #else
 
-void *
-xmalloc_d(size_t n, int line, const char *file) MALLOC_LIKE RETURNS_NONNULL
-    NONNULL;
+void * MALLOC_LIKE RETURNS_NONNULL NONNULL
+xmalloc_d(size_t n, int line, const char *file);
 
-void *
-xcalloc_d(size_t n, size_t size, int line, const char *file) MALLOC_LIKE
-    RETURNS_NONNULL NONNULL;
+void * MALLOC_LIKE RETURNS_NONNULL NONNULL
+xcalloc_d(size_t n, size_t size, int line, const char *file);
 
-void *
-xrealloc_d(void *ptr, size_t n, int line, const char *file) RETURNS_NONNULL
-    NONNULL_AT(4);
+void * RETURNS_NONNULL
+xrealloc_d(void *ptr, size_t n, int line, const char *file);
 
 void
-xfree_d(void *ptr, int line, const char *file) NONNULL;
+xfree_d(void *ptr, int line, const char *file);
 
 #define jxmalloc(n) xmalloc_d((n), __LINE__, __FILE__)
 #define jxcalloc(n,s) xcalloc_d((n), (s), __LINE__, __FILE__)
