@@ -45,6 +45,10 @@ alloc_size(size_t size)
         size |= size >> i;
     }
     alloc_min_buf_size = size + 1;
+
+    ASSERT(alloc_min_buf_size != 0, "alloc_min_buf_size should not be 0");
+    ASSERT((alloc_min_buf_size & (alloc_min_buf_size - 1)) == 0,
+           "alloc_min_buf_size should be a power of 2");
 }
 
 struct mem_info {
@@ -196,6 +200,9 @@ get_buf(size_t len)
         do {
             str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
         } while (str[i] == '\0');
+
+        ASSERT(str[i] != '\0',
+               "str cannot have a null char in the middle of it");
     }
 
     str[len] = '\0';
@@ -289,6 +296,8 @@ calloc_d(size_t n, size_t size, int line, const char *file)
     ASSUME(file != NULL);
 
     // TODO - check for overflow in n * size
+    ASSERT(n < n * size, "overflow has occcured");
+    ASSERT(size < n * size, "overflow has occured");
 
     return alloc_d(n * size, 1, line, file);
 }
@@ -309,8 +318,8 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 
     if (ERR(n == 0)) {
         fprintf(stderr, "Warning: realloc(ptr, 0) is not portable, since it\n"
-                "may or may not free ptr.\n\tLine: %i\n\tFile: %s\n"
-                "\tPointer: %p\n",
+                "may or may not free ptr. Here ptr is being freed.\n"
+                "\tLine: %i\n\tFile: %s\n\tPointer: %p\n",
                 line, file, ptr);
 
         free_d(ptr, line, file);

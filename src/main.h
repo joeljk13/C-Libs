@@ -10,7 +10,12 @@
 
 #define NONNULL __attribute__((nonnull))
 #define NONNULL_AT(...) __attribute__((nonnull(__VA_ARGS__)))
+
+#ifdef __GNUC__
+
 #define RETURNS_NONNULL __attribute__((returns_nonnull))
+
+#endif
 
 #define CONST __attribute__((const))
 
@@ -24,11 +29,11 @@
 #define IMPLIES(a,b) (!(a) || (b))
 
 /* A simple assertion with a message. */
-#define ASSERT(b,m) assert(((m), (b)))
+#define ASSERT(b,m) assert((b) && (m))
 
 /* A compile time assertion with a message. */
 #define STATIC_ASSERT(b,m) do { \
-    typedef char STATIC_ASSERT_[!!(b) * 2 - 1]; \
+    typedef char STATIC_ASSERT_[-1+2*!!((b) && (m))]; \
 } while (0)
 
 #ifdef NDEBUG
@@ -58,7 +63,7 @@
 } while (0)
 
 #define ASSUME(b) do { \
-    ASSERT(b, "assertion failed in ASSUME"); \
+    ASSERT((b), "assertion failed in ASSUME"); \
 } while (0)
 
 #define LIKELY(b) (!!(b))
