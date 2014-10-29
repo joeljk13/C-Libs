@@ -108,7 +108,7 @@ find_ptr_info(const void *ptr)
 
     // Lookups are more likely to be from the more recently allocated pointers
     for (size_t i = 0; i < n_ptr_infos; ++i) {
-        for (const char *p = ptr_infos[i].ptr, p_end = p + ptr_infos[i].bytes;
+        for (const char *p = ptr_infos[i].ptr, *p_end = p + ptr_infos[i].bytes;
              p != p_end; ++p) {
             if (p == ptr) {
                 return ptr_infos[i].ptr;

@@ -3,7 +3,7 @@
 PARAMS="-std=c99"
 DEBUG=true
 OPTIMIZATION="-O0"
-WARNINGS=""
+WARNINGS="-Wno-unused-value"
 ERRS="-pedantic-errors"
 DEFS=""
 EXEC="test"
@@ -18,6 +18,9 @@ MAIN="int main(int c,char**v){int ${EXEC}_main(int,char**);return \
 
 SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
 TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
+
+# tmp
+SRCS="./src/alloc.c ./src/main.c"
 
 CPARAMS="$PARAMS $WARNINGS $ERRS"
 
