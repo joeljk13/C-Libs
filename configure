@@ -1,11 +1,14 @@
-#!/bin/sh
-
+#!/bin/sh 
 PARAMS="-std=c99"
 DEBUG=true
 OPTIMIZATION="-O0"
 WARNINGS="-Wno-unused-value"
 ERRS="-pedantic-errors"
 DEFS=""
+TESTDEFS="COLOR_RESET='\"$(tput sgr 0)\"' \
+    COLOR_RED='\"$(tput setaf 1)\"' \
+    COLOR_GREEN='\"$(tput setaf 2)\"' \
+    COLOR_YELLOW='\"$(tput setaf 3)\"'"
 EXEC="test"
 LINKS="jemalloc"
 SRCDIR="src"
@@ -27,6 +30,7 @@ CPARAMS="$PARAMS $WARNINGS $ERRS"
 if $DEBUG
 then
     CPARAMS="$CPARAMS -g -O0 -DDEBUG"
+    LPARAMS="$LPARAMS -g"
 else
     CPARAMS="$CPARAMS $OPTIMIZATION -DNDEBUG"
 fi
@@ -50,6 +54,13 @@ do
     LLINKS="$LLINKS -l$LINK"
 done
 
+TPARAMS="$CPARAMS"
+
+for TESTDEF in $TESTDEFS
+do
+    TPARAMS="$TPARAMS -D$TESTDEF"
+done
+
 printf "
 SHELL = /bin/sh
 SRCS = %s
@@ -59,11 +70,13 @@ TESTOBJS = \$(TESTS:.$EXT=.o)
 CPARAMS = %s
 LPARAMS = %s
 LINKS = $LLINKS
+TPARAMS = %s
+
 $EXEC: \$(SRCOBJS) $SRCDIR/$EXEC-main.o
 \t$CC -o \$@ \$(LPARAMS) \$^ \$(LINKS)
 $SRCDIR/$EXEC-main.o:
 \techo '%s' | $CC -c -o \$@ -x $EXT \$(CPARAMS) -
-" "$SRCS" "$TESTS" "$CPARAMS" "$LPARAMS" "$MAIN" > $MAKEFILE
+" "$SRCS" "$TESTS" "$CPARAMS" "$LPARAMS" "$TPARAMS" "$MAIN" > $MAKEFILE
 
 for SRC in $SRCS
 do
@@ -79,16 +92,20 @@ check: \$(TESTOBJS) ;
 for TEST in $TESTS
 do
     # the rm check \$@ could use -f, but it shouldn't be necessary
-    printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(CPARAMS) \$< \
+    printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(TPARAMS) \$< \
         \n\t$CC -o check \$(LPARAMS) \$@ \$(SRCOBJS) \$(LINKS) \
-        \n\ttput setaf 1; if ! ./check; then echo 'Check failed!'; tput sgr 0; rm check; exit 1; else tput sgr 0; fi \
-        \n\ttput setaf 2; echo 'Check succeeded!'; tput sgr 0 \
-        \n\trm check \$@" \
+        \n\t@if ! ./check; then echo; tput setaf 1; echo 'Check failed!'; \
+            tput sgr 0; rm check \$@; exit 1; fi \
+        \n\t@echo \
+        \n\t@tput setaf 2 \
+        \n\t@echo 'Check succeeded!' \
+        \n\t@tput sgr 0 \
+        \n\t@rm check \$@" \
         "$($CC -MM $TEST)" >> $MAKEFILE
 done
 
-printf "
+printf "\n
 .PHONY: clean
 clean:
-\trm -rf %s *.[ios] \$(SRCOBJS) \$(TESTOBJS) $SRCDIR/$EXEC-main.o
+\trm -rf %s *.[ios] \$(SRCOBJS) \$(TESTOBJS) $SRCDIR/$EXEC-main.o check
 " "$EXEC" >> $MAKEFILE

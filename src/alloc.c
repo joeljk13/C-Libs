@@ -172,7 +172,7 @@ alloc_free(void)
         fprintf(stderr, "Memory not freed!\n\tLine: %i\n\tFile: %s\n"
                 "\tBytes: %u\n\tPointer: %p\n",
                 mem_info->line, mem_info->file, mem_info->bytes,
-                ptr_infos[i]);
+                (void *)mem_info);
 
         FREE(ptr_infos[i].ptr);
     }
@@ -296,8 +296,8 @@ calloc_d(size_t n, size_t size, int line, const char *file)
     ASSUME(file != NULL);
 
     // TODO - check for overflow in n * size
-    ASSERT(n < n * size, "overflow has occcured");
-    ASSERT(size < n * size, "overflow has occured");
+    ASSERT(n <= n * size, "overflow has occcured");
+    ASSERT(size <= n * size, "overflow has occured");
 
     return alloc_d(n * size, 1, line, file);
 }
