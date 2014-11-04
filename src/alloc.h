@@ -19,7 +19,7 @@
 
 #define alloc_size(s) ((void)0)
 #define alloc_init() ((void)0)
-#define alloc_free() ((void)0)
+#define alloc_free() (0)
 
 #ifdef JEMALLOC
 
@@ -44,7 +44,7 @@ alloc_size(size_t size);
 
 #define alloc_init() ((void)0)
 
-void
+int
 alloc_free(void);
 
 void *

@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 PARAMS="-std=c99"
 DEBUG=true
 OPTIMIZATION="-O0"
@@ -23,7 +23,7 @@ SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
 TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
 
 # tmp
-SRCS="./src/alloc.c ./src/main.c"
+SRCS="./src/alloc.c ./src/main.c ./src/vec.c"
 
 CPARAMS="$PARAMS $WARNINGS $ERRS"
 
