@@ -10,19 +10,19 @@ check(const char *str)
 {
     ASSUME(str != NULL);
 
-    printf("%sChecking %s... ", COLOR_RESET, str);
+    printf("%sChecking %s...%s ", COLOR_RESET, str, COLOR_RED);
 }
 
 static inline void
-ok(void)
+pass(void)
 {
-    printf("%s[OK]%s\n", COLOR_GREEN, COLOR_RESET);
+    printf("%s[PASS]%s\n", COLOR_GREEN, COLOR_RED);
 }
 
 static inline void
 fail(void)
 {
-    printf("%s[FAIL]%s\n", COLOR_RED, COLOR_RESET);
+    printf("%s[FAIL]\n", COLOR_RED);
 }
 
 #endif

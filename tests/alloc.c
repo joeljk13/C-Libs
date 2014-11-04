@@ -12,55 +12,55 @@ main(void)
 
     check("alloc_init()");
     alloc_init();
-    ok();
+    pass();
 
     check("alloc_size()");
     alloc_size(1);
-    ok();
+    pass();
 
     check("jxmalloc()");
     ptr = jxmalloc(1);
-    ok();
+    pass();
 
     check("jxfree()");
     jxfree(ptr);
-    ok();
+    pass();
 
     check("jxcalloc()");
     ptr = jxcalloc(1, 1);
-    ok();
+    pass();
 
     check("jxrealloc()");
     ptr = jxrealloc(ptr, 1);
-    ok();
+    pass();
 
     check("jxfree()");
     jxfree(ptr);
-    ok();
+    pass();
 
     check("jmalloc()");
     ptr = jmalloc(1);
-    ok();
+    pass();
 
     check("jfree()");
     jfree(ptr);
-    ok();
+    pass();
 
     check("jcalloc()");
     ptr = jcalloc(1, 1);
-    ok();
+    pass();
 
     check("jrealloc()");
     ptr = jrealloc(ptr, 1);
-    ok();
+    pass();
 
     check("jfree()");
     jfree(ptr);
-    ok();
+    pass();
 
     check("alloc_free()");
     alloc_free();
-    ok();
+    pass();
 
     return 0;
 }
