@@ -295,7 +295,8 @@ calloc_d(size_t n, size_t size, int line, const char *file)
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
-    // TODO - check for overflow in n * size
+    // TODO - check for overflow in n * size; these assertions are a start but
+    // not reliable
     ASSERT(n <= n * size, "overflow has occcured");
     ASSERT(size <= n * size, "overflow has occured");
 
