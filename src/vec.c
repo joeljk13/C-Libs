@@ -92,3 +92,19 @@ vec_reserve_min(void **ptr, size_t *n, size_t size, size_t extra)
 
     return 0;
 }
+
+int
+vec_shrink(void **ptr, size_t *n, size_t size, size_t m)
+{
+    void *tmp;
+
+    tmp = jrealloc(*ptr, m * size);
+    if (ERR(tmp == NULL)) {
+        return -1;
+    }
+    *ptr = tmp;
+
+    *n = m;
+
+    return 0;
+}

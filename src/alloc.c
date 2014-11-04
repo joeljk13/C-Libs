@@ -1,6 +1,8 @@
 #include "main.h"
 #include "alloc.h"
 
+#include "vec.h"
+
 #include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -71,10 +73,10 @@ mem_fail(size_t bytes, int line, const char *file)
             line, file, bytes);
 }
 
-// TODO - Optimize the pointer info storage. Right now, it each pointer
-// addition/removal causes an allocation/deallocation, which shouldn't be
-// necessary. Maybe adapt ptrvec to a vector of struct ptr_info? Or maybe use a
-// tree to get O(log(n)) insertion, removal, and deletion?
+// TODO - Optimize the pointer info storage. Maybe adapt ptrvec to a vector of
+// struct ptr_info? Or maybe use a tree to get O(log(n)) insertion, removal,
+// and deletion?
+
 struct ptr_info {
     const void *ptr;
     size_t bytes;
@@ -82,6 +84,7 @@ struct ptr_info {
 
 static struct ptr_info *ptr_infos = NULL;
 static size_t n_ptr_infos = 0;
+static size_t cap_ptr_infos = 0;
 
 static inline int NONNULL
 add_ptr_info(const void *ptr, size_t bytes)
@@ -91,12 +94,16 @@ add_ptr_info(const void *ptr, size_t bytes)
     ASSUME(ptr != NULL);
     ASSUME(bytes > 0);
 
-    tmp = REALLOC(ptr_infos, (n_ptr_infos + 1) * sizeof(*tmp));
-    if (ERR(tmp == NULL)) {
-        mem_fail((n_ptr_infos + 1) * sizeof(*tmp), __LINE__, __FILE__);
-        return -1;
+    if (n_ptr_infos == cap_ptr_infos) {
+        if (ERR(vec_reserve_one_min(&ptr_infos, &cap_ptr_infos,
+                                    sizeof(*ptr_infos)) != 0)) {
+
+            mem_fail((n_ptr_infos + 1) * sizeof(*ptr_infos), __LINE__,
+                __FILE__);
+
+            return -1;
+        }
     }
-    ptr_infos = tmp;
 
     ptr_infos[n_ptr_infos].ptr = ptr;
     ptr_infos[n_ptr_infos].bytes = bytes;
@@ -110,7 +117,6 @@ find_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
 
-    // Lookups are more likely to be from the more recently allocated pointers
     for (size_t i = 0; i < n_ptr_infos; ++i) {
         for (const char *p = ptr_infos[i].ptr, *p_end = p + ptr_infos[i].bytes;
              p != p_end; ++p) {
@@ -140,16 +146,9 @@ remove_ptr_info(const void *ptr)
         // last ptr_info and remove the last
         ptr_infos[i] = ptr_infos[--n_ptr_infos];
 
-        if (n_ptr_infos == 0) {
-            FREE(ptr_infos);
-            ptr_infos = NULL;
-        } else {
-            tmp = REALLOC(ptr_infos, n_ptr_infos * sizeof(*tmp));
-            if (ERR(tmp == NULL)) {
-                mem_fail(n_ptr_infos * sizeof(*tmp), __LINE__, __FILE__);
-                return -1;
-            }
-            ptr_infos = tmp;
+        if (cap_ptr_infos > 2 * n_ptr_infos) {
+            vec_shrink(&ptr_infos, &cap_ptr_infos, sizeof(*ptr_infos),
+                       n_ptr_infos);
         }
 
         return 0;
@@ -162,7 +161,7 @@ remove_ptr_info(const void *ptr)
 
 // alloc_init() does nothing
 
-void
+int
 alloc_free(void)
 {
     for (size_t i = 0; i < n_ptr_infos; ++i) {
@@ -178,6 +177,8 @@ alloc_free(void)
     }
 
     FREE(ptr_infos);
+
+    return n_ptr_infos;
 }
 
 static inline const char *
