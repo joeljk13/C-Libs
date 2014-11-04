@@ -100,7 +100,7 @@ do
         \n\t@tput setaf 2 \
         \n\t@echo 'Check succeeded!' \
         \n\t@tput sgr 0 \
-        \n\t@rm check \$@" \
+        \n\t@rm check \$@\n\n" \
         "$($CC -MM $TEST)" >> $MAKEFILE
 done
 
