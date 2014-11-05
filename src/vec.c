@@ -32,7 +32,7 @@ vec_reserve_one_min(void *ptr, size_t *n, size_t size)
     ASSUME(ptr != NULL);
     ASSUME(n != NULL);
 
-    cap = (*n * 2);
+    cap = *n == 0 ? 1 : (*n * 2);
 
     tmp = jrealloc(*(void **)ptr, cap * size);
     if (ERR(tmp == NULL)) {

@@ -11,18 +11,21 @@ check(const char *str)
     ASSUME(str != NULL);
 
     printf("%sChecking %s...%s ", COLOR_RESET, str, COLOR_RED);
+    fflush(stdout);
 }
 
 static inline void
 pass(void)
 {
     printf("%s[PASS]%s\n", COLOR_GREEN, COLOR_RED);
+    fflush(stdout);
 }
 
 static inline void
 fail(void)
 {
     printf("%s[FAIL]\n", COLOR_RED);
+    fflush(stdout);
 }
 
 #endif

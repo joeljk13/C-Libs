@@ -534,8 +534,6 @@ xmalloc_d(size_t n, int line, const char *file)
         ASSUME_UNREACHABLE();
     }
 
-    ASSUME(n != 0);
-
     ptr = malloc_d(n, line, file);
     if (ERR(ptr == NULL)) {
         fputs(XMALLOC_ERR_MSG, stderr);
@@ -566,9 +564,6 @@ xcalloc_d(size_t n, size_t size, int line, const char *file)
         ASSUME_UNREACHABLE();
     }
 
-    ASSUME(n > 0);
-    ASSUME(size > 0);
-
     ptr = calloc_d(n, size, line, file);
     if (ERR(ptr == NULL)) {
         fputs(XCALLOC_ERR_MSG, stderr);
@@ -596,8 +591,6 @@ xrealloc_d(void *ptr, size_t n, int line, const char *file)
 
         ASSUME_UNREACHABLE();
     }
-
-    ASSUME(n > 0);
 
     ptr = realloc_d(ptr, n, line, file);
     if (ERR(ptr == NULL)) {
