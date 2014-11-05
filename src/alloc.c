@@ -95,14 +95,23 @@ add_ptr_info(const void *ptr, size_t bytes)
     ASSUME(bytes > 0);
 
     if (n_ptr_infos == cap_ptr_infos) {
-        if (ERR(vec_reserve_one_min(&ptr_infos, &cap_ptr_infos,
-                                    sizeof(*ptr_infos)) != 0)) {
+        size_t cap;
+        
+        cap = cap_ptr_infos == 0 ? 1 : cap_ptr_infos * 2;
 
-            mem_fail((n_ptr_infos + 1) * sizeof(*ptr_infos), __LINE__,
-                __FILE__);
+        tmp = REALLOC(ptr_infos, cap * sizeof(*ptr_infos));
+        if (ERR(tmp == NULL)) {
+            cap = cap_ptr_infos + 1;
 
-            return -1;
+            tmp = REALLOC(ptr_infos, cap * sizeof(*ptr_infos));
+            if (ERR(tmp == NULL)) {
+                mem_fail(cap * sizeof(*ptr_infos), __LINE__, __FILE__);
+                return -1;
+            }
         }
+        ptr_infos = tmp;
+
+        cap_ptr_infos = cap;
     }
 
     ptr_infos[n_ptr_infos].ptr = ptr;
@@ -146,9 +155,17 @@ remove_ptr_info(const void *ptr)
         // last ptr_info and remove the last
         ptr_infos[i] = ptr_infos[--n_ptr_infos];
 
-        if (cap_ptr_infos > 2 * n_ptr_infos) {
-            vec_shrink(&ptr_infos, &cap_ptr_infos, sizeof(*ptr_infos),
-                       n_ptr_infos);
+        if (cap_ptr_infos > 2 * (n_ptr_infos + 1)) {
+            struct ptr_info *tmp;
+
+            tmp = REALLOC(ptr_infos, n_ptr_infos * sizeof(*ptr_infos));
+            if (ERR(tmp == NULL)) {
+                mem_fail(n_ptr_infos * sizeof(*ptr_infos), __LINE__, __FILE__);
+                return -1;
+            }
+            ptr_infos = tmp;
+
+            cap_ptr_infos = n_ptr_infos;
         }
 
         return 0;

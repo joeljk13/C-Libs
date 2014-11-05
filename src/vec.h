@@ -4,7 +4,7 @@
 #include "main.h"
 
 int
-vec_reserve_one(void *ptr, size_t n, size_t size);
+vec_reserve_one(void **ptr, size_t n, size_t size);
 
 int
 vec_reserve_one_min(void *ptr, size_t *n, size_t size);

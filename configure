@@ -95,7 +95,7 @@ do
     printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(TPARAMS) \$< \
         \n\t$CC -o check \$(LPARAMS) \$@ \$(SRCOBJS) \$(LINKS) \
         \n\t@if ! ./check; then echo; tput setaf 1; echo 'Check failed!'; \
-            tput sgr 0; rm check \$@; exit 1; fi \
+            tput sgr 0; exit 1; fi \
         \n\t@echo \
         \n\t@tput setaf 2 \
         \n\t@echo 'Check succeeded!' \
