@@ -3,8 +3,6 @@
 
 #include "alloc.h"
 
-#include <stdio.h>
-
 int
 vec_reserve_one(void **ptr, size_t n, size_t size)
 {

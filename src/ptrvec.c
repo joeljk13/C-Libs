@@ -57,7 +57,8 @@ ptrvec_push_v(struct ptrvec *ptrvec, struct ptrvec *ptr)
         return -1;
     }
 
-    memcpy(ptrvec->ptr + ptrvec->length, ptr->ptr, ptr->length);
+    memcpy(ptrvec->ptr + ptrvec->length, ptr->ptr, ptr->length *
+           sizeof(*ptr->ptr));
 
     ptrvec->length += ptr->length;
 
@@ -94,7 +95,7 @@ ptrvec_insert(struct ptrvec *ptrvec, const void *ptr, size_t index)
     }
 
     memmove(ptrvec->ptr + index + 1, ptrvec->ptr + index,
-            ptrvec->length - index - 1);
+            (ptrvec->length - index - 1) * sizeof(*ptrvec->ptr));
 
     ptrvec->ptr[index] = (void *)ptr;
 
@@ -115,9 +116,9 @@ ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index)
     }
 
     memmove(ptrvec->ptr + index + ptr->length, ptrvec->ptr + index,
-            ptr->length);
+            ptr->length * sizeof(*ptr->ptr);
     // If it's inserting a ptrvec inside itself, it'll need a memmove
-    memmove(ptrvec->ptr + index, ptr->ptr, ptr->length);
+    memmove(ptrvec->ptr + index, ptr->ptr, ptr->length * sizeof(*ptr->ptr));
 
     ptrvec->length += ptr->length;
 
@@ -131,7 +132,7 @@ ptrvec_remove(struct ptrvec *ptrvec, size_t index)
     ASSUME(index < ptrvec->length);
 
     memmove(ptrvec->ptr + index, ptrvec->ptr + index + 1,
-            ptrvec->length - index - 1);
+            (ptrvec->length - index - 1) * sizeof(*ptrvec->ptr));
 
     --ptrvec->length;
 }
@@ -143,7 +144,8 @@ ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end)
     ASSUME(begin <= end);
     ASSUME(end <= ptrvec->length);
 
-    memmove(ptrvec->ptr + begin, ptrvec->ptr + end, ptrvec->length - end);
+    memmove(ptrvec->ptr + begin, ptrvec->ptr + end, (ptrvec->length - end)
+            * sizeof(*ptrvec->ptr));
 
     ptrvec->length -= (end - begin);
 }
@@ -165,7 +167,7 @@ ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
     ASSUME(end <= ptrvec->length);
 
     memmove(ptrvec->ptr + begin, ptrvec->ptr + ptrvec->length - (end - begin),
-            end - begin);
+            (end - begin) * sizeof(*ptrvec->ptr));
 
     ptrvec->length -= (end - begin);
 }
