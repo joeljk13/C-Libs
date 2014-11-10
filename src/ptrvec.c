@@ -2,6 +2,7 @@
 #include "ptrvec.h"
 
 #include "alloc.h"
+#include "vec.h"
 
 #include <string.h>
 
