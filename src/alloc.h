@@ -39,6 +39,7 @@
 
 #else
 
+/* Increases the buffer to be at least size bytes. */
 void
 alloc_size(size_t size);
 

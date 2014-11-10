@@ -305,7 +305,7 @@ args_init(int argc, const char **argv, const char *format)
     // Some slots may be left empty, but no more than argc_ slots will ever be
     // used. argc_ is probably small enough that a little extra memory
     // shouldn't matter.
-    args = MALLOC(argc_ * sizeof(*args));
+    args = jmalloc(argc_ * sizeof(*args));
     if (ERR(args == NULL)) {
         return -1;
     }
@@ -314,12 +314,13 @@ args_init(int argc, const char **argv, const char *format)
         // There was no format specified, so use the raw args. Basically 
         // register each arg that exists and say that it was found.
         for (int i = 0; i < argc_; ++i) {
-            args[i] = (struct arg){argv[i], NULL, NULL, ARG_BOOL, ARG_IS_FOUND};
+            args[i] = (struct arg){argv[i], NULL, ARG_BOOL, ARG_IS_FOUND};
         }
 
         return 0;
-    } else {
-        // Can't use calloc, because we need to set it to logical zero
+    }
+    else {
+        // Can't use jcalloc, because we need to set it to logical zero
         for (int i = 0; i < argc_; ++i) {
             args[i] = (struct arg){0};
         }

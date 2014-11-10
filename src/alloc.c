@@ -96,7 +96,7 @@ add_ptr_info(const void *ptr, size_t bytes)
 
     if (n_ptr_infos == cap_ptr_infos) {
         size_t cap;
-        
+
         cap = cap_ptr_infos == 0 ? 1 : cap_ptr_infos * 2;
 
         tmp = REALLOC(ptr_infos, cap * sizeof(*ptr_infos));
@@ -129,6 +129,7 @@ find_ptr_info(const void *ptr)
     for (size_t i = 0; i < n_ptr_infos; ++i) {
         for (const char *p = ptr_infos[i].ptr, *p_end = p + ptr_infos[i].bytes;
              p != p_end; ++p) {
+
             if (p == ptr) {
                 return ptr_infos[i].ptr;
             }

@@ -10,21 +10,21 @@ enum arg_type {
     ARG_REAL
 };
 
-/* Initializes the args. Returns 0 on success, -1 on failure. */
+/* Initializes the args. Returns 0 on success, nonzero on failure. */
 int
-args_init(int argc, char **argv, const char *format) NONNULL_AT(2) LEAF;
+args_init(int argc, char **argv, const char *format) NONNULL_AT(2);
 
 /* Cleans up resources used by the args. */
 void
-args_free(void) LEAF;
+args_free(void);
 
 /* Returns 1 if name is an argument that was passed, 0 otherwise. */
 int
-is_arg(const char *name) NONNULL LEAF;
+is_arg(const char *name) NONNULL;
 
 /* Returns NULL is name is not an argument that was passed, otherwise a pointer
  * to the value of the argument. */
 void *
-get_arg(const char *name) NONNULL LEAF;
+get_arg(const char *name) NONNULL;
 
 #endif
