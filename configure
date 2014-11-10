@@ -2,7 +2,7 @@
 PARAMS="-std=c99"
 DEBUG=true
 OPTIMIZATION="-O0"
-WARNINGS="-Wno-unused-value"
+WARNINGS="-Wno-unused-value -Wno-attributes"
 ERRS="-pedantic-errors"
 DEFS=""
 TESTDEFS="COLOR_RESET='\"$(tput sgr 0)\"' \
@@ -23,7 +23,7 @@ SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
 TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
 
 # tmp
-SRCS="./src/alloc.c ./src/main.c ./src/vec.c"
+SRCS="./src/alloc.c ./src/main.c ./src/vec.c ./src/ptrvec.c"
 
 CPARAMS="$PARAMS $WARNINGS $ERRS"
 
@@ -92,13 +92,14 @@ check: \$(TESTOBJS) ;
 for TEST in $TESTS
 do
     # the rm check \$@ could use -f, but it shouldn't be necessary
-    printf "$TESTDIR/%s\n\t$CC -c -o \$@ \$(TPARAMS) \$< \
+    printf "$TESTDIR/%s\n\t@$CC -c -o \$@ \$(TPARAMS) \$< \
         \n\t$CC -o check \$(LPARAMS) \$@ \$(SRCOBJS) \$(LINKS) \
         \n\t@if ! ./check; then echo; tput setaf 1; echo 'Check failed!'; \
             tput sgr 0; exit 1; fi \
         \n\t@echo \
         \n\t@tput setaf 2 \
         \n\t@echo 'Check succeeded!' \
+        \n\t@echo \
         \n\t@tput sgr 0 \
         \n\t@rm check \$@\n\n" \
         "$($CC -MM $TEST)" >> $MAKEFILE

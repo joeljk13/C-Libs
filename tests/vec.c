@@ -8,5 +8,7 @@
 int
 main(void)
 {
+    TEST_TODO(Implement vec tests);
+
     return 0;
 }

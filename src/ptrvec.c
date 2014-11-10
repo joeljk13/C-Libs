@@ -111,12 +111,12 @@ ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index)
     ASSUME(ptr != NULL);
     ASSUME(index <= ptrvec->length);
 
-    if (ERR(ptrvec_reserve(&ptrvec, ptrvec->length + ptr->length) != 0)) {
+    if (ERR(ptrvec_reserve(ptrvec, ptrvec->length + ptr->length) != 0)) {
         return -1;
     }
 
     memmove(ptrvec->ptr + index + ptr->length, ptrvec->ptr + index,
-            ptr->length * sizeof(*ptr->ptr);
+            ptr->length * sizeof(*ptr->ptr));
     // If it's inserting a ptrvec inside itself, it'll need a memmove
     memmove(ptrvec->ptr + index, ptr->ptr, ptr->length * sizeof(*ptr->ptr));
 

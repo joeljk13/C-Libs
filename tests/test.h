@@ -6,26 +6,43 @@
 #include <stdio.h>
 
 static inline void
-check(const char *str)
+TEST_CHECK(const char *str)
 {
     ASSUME(str != NULL);
 
-    printf("%sChecking %s...%s ", COLOR_RESET, str, COLOR_RED);
+    printf("%sChecking %s... %s", COLOR_RESET, str, COLOR_RED);
     fflush(stdout);
 }
 
 static inline void
-pass(void)
+TEST_PASS(void)
 {
-    printf("%s[PASS]%s\n", COLOR_GREEN, COLOR_RED);
+    printf("%s[PASS]\n%s", COLOR_GREEN, COLOR_RED);
     fflush(stdout);
 }
 
 static inline void
-fail(void)
+TEST_FAIL(void)
 {
     printf("%s[FAIL]\n", COLOR_RED);
     fflush(stdout);
 }
+
+static inline void
+TEST_TODO_(const char *msg)
+{
+    printf("%s[TODO] %s\n%s", COLOR_YELLOW, msg, COLOR_RED);
+}
+
+#define TEST_ASSERT(b) do { \
+    if (!(b)) { \
+        TEST_FAIL(); \
+        return 1; \
+    } \
+} while (0)
+
+#define TEST_TODO(m) do { \
+    TEST_TODO_(#m); \
+} while (0)
 
 #endif

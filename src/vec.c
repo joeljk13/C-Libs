@@ -4,7 +4,7 @@
 #include "alloc.h"
 
 int
-vec_reserve_one(void **ptr, size_t n, size_t size)
+vec_reserve_one(void *ptr, size_t n, size_t size)
 {
     void *tmp;
     size_t bytes;
@@ -13,11 +13,11 @@ vec_reserve_one(void **ptr, size_t n, size_t size)
 
     bytes = (n + 1) * size;
 
-    tmp = jrealloc(*ptr, bytes);
+    tmp = jrealloc(*(void **)ptr, bytes);
     if (ERR(tmp == NULL)) {
         return -1;
     }
-    *ptr = tmp;
+    *(void **)ptr = tmp;
 
     return 0;
 }

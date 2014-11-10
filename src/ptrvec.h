@@ -8,7 +8,7 @@ struct ptrvec {
     void **ptr;
     size_t length;
     size_t capacity;
-}
+};
 
 /* All of the following functions take a struct ptrvec * as their first
  * argument. This pointer is always assumed not to be NULL.
@@ -99,7 +99,7 @@ ptrvec_reserve(struct ptrvec *ptrvec, size_t size) NONNULL;
 
 /* Removes all pointers outside the range [begin, end). Returns 0 on success,
  * nonzero on failure. */
-int
+void
 ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end) NONNULL;
 
 /* Frees the memory used by ptrvec. */

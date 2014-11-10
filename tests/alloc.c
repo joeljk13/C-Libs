@@ -10,57 +10,59 @@ main(void)
 {
     void *ptr;
 
-    check("alloc_init()");
+    TEST_CHECK("alloc_init()");
     alloc_init();
-    pass();
+    TEST_PASS();
 
-    check("alloc_size()");
+    TEST_CHECK("alloc_size()");
     alloc_size(1);
-    pass();
+    TEST_PASS();
 
-    check("jxmalloc()");
+    TEST_CHECK("jxmalloc()");
     ptr = jxmalloc(1);
-    pass();
+    TEST_PASS();
 
-    check("jxfree()");
+    TEST_CHECK("jxfree()");
     jxfree(ptr);
-    pass();
+    TEST_PASS();
 
-    check("jxcalloc()");
+    TEST_CHECK("jxcalloc()");
     ptr = jxcalloc(1, 1);
-    pass();
+    TEST_PASS();
 
-    check("jxrealloc()");
+    TEST_CHECK("jxrealloc()");
     ptr = jxrealloc(ptr, 1);
-    pass();
+    TEST_PASS();
 
-    check("jxfree()");
+    TEST_CHECK("jxfree()");
     jxfree(ptr);
-    pass();
+    TEST_PASS();
 
-    check("jmalloc()");
+    TEST_CHECK("jmalloc()");
     ptr = jmalloc(1);
-    pass();
+    TEST_PASS();
 
-    check("jfree()");
+    TEST_CHECK("jfree()");
     jfree(ptr);
-    pass();
+    TEST_PASS();
 
-    check("jcalloc()");
+    TEST_CHECK("jcalloc()");
     ptr = jcalloc(1, 1);
-    pass();
+    TEST_PASS();
 
-    check("jrealloc()");
+    TEST_CHECK("jrealloc()");
     ptr = jrealloc(ptr, 1);
-    pass();
+    TEST_PASS();
 
-    check("jfree()");
+    TEST_CHECK("jfree()");
     jfree(ptr);
-    pass();
+    TEST_PASS();
 
-    check("alloc_free()");
+    TEST_CHECK("alloc_free()");
     alloc_free();
-    pass();
+    TEST_PASS();
+
+    TEST_TODO(Implement alloc tests);
 
     return 0;
 }
