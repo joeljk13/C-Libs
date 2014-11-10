@@ -5,9 +5,34 @@
 
 enum arg_type {
     ARG_BOOL,
+
     ARG_STRING,
-    ARG_INTEGER,
-    ARG_REAL
+
+    ARG_CHAR,
+    ARG_SIGNED_CHAR,
+    ARG_UNSIGNED_CHAR,
+
+    ARG_SHORT,
+    ARG_SIGNED_SHORT,
+    ARG_UNSIGNED_SHORT,
+
+    ARG_INT,
+    ARG_SIGNED_INT,
+    ARG_UNSIGNED_INT,
+
+    ARG_LONG,
+    ARG_SIGNED_LONG,
+    ARG_UNSIGNED_LONG,
+
+    ARG_LONG_LONG,
+    ARG_SIGNED_LONG_LONG,
+    ARG_UNSIGNED_LONG_LONG,
+
+    ARG_FLOAT,
+    ARG_DOUBLE,
+    ARG_LONG_DOUBLE,
+
+    ARG_SIZE_T
 };
 
 /* Initializes the args. Returns 0 on success, nonzero on failure. */

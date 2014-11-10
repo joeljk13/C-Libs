@@ -23,8 +23,34 @@ struct arg {
     enum arg_props props;
 
     union {
-        const char *value_s;
-    };
+        const char *value_str;
+
+        char value_c;
+        signed char value_sc;
+        unsigned char value_uc;
+
+        short value_s;
+        short value_ss;
+        unsigned short value_us;
+
+        int value_i;
+        int value_si;
+        unsigned int value_ui;
+
+        long value_l;
+        long value_l;
+        unsigned long value_ul;
+
+        long long value_ll;
+        long long value_sll;
+        unsigned long long value_ull;
+
+        float value_f;
+        double value_d;
+        long double value_ld;
+
+        size_t value_z;
+    } value;
 };
 
 enum {
