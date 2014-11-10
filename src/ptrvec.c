@@ -18,40 +18,6 @@ ptrvec_init(struct ptrvec *ptrvec)
     return 0;
 }
 
-static inline size_t
-get_next_capacity(size_t capacity)
-{
-    return capacity == 0 ? 1 : 2 * capacity;
-}
-
-/* Sets the *capacity to the new capacity. */
-static inline int
-reserve_one(void **ptr, size_t *capacity)
-{
-    void *tmp;
-    size_t cap;
-
-    ASSUME(ptr != NULL);
-    ASSUME(capacity != NULL);
-
-    cap = get_next_capacity(*capacity);
-
-    tmp = REALLOC(ptr, cap * sizeof(*ptr));
-    if (ERR(tmp == NULL)) {
-        cap = (*capacity + 1) * sizeof(*ptr);
-
-        tmp = REALLOC(ptr, cap);
-        if (ERR(tmp == NULL)) {
-            return -1;
-        }
-    }
-
-    ptr = tmp;
-    *capacity = cap;
-
-    return 0;
-}
-
 void
 ptrvec_zero(struct ptrvec *ptrvec)
 {
@@ -65,17 +31,18 @@ ptrvec_zero(struct ptrvec *ptrvec)
 }
 
 int
-ptrvec_push(struct ptrvec *ptrvec, void *ptr)
+ptrvec_push(struct ptrvec *ptrvec, const void *ptr)
 {
     ASSUME(ptrvec != NULL);
 
     if (ptrvec->capacity == ptrvec->length
-        && ERR(reserve_one(ptrvec->ptr, &ptrvec->capacity) != 0)) {
+        && ERR(vec_reserve_one_min(&ptrvec->ptr, &ptrvec->capacity,
+                                   sizeof(*ptrvec->ptr)) != 0)) {
 
         return -1;
     }
 
-    ptrvec->ptr[ptrvec->length++] = ptr;
+    ptrvec->ptr[ptrvec->length++] = (void *)ptr;
 
     return 0;
 }
@@ -91,6 +58,8 @@ ptrvec_push_v(struct ptrvec *ptrvec, struct ptrvec *ptr)
     }
 
     memcpy(ptrvec->ptr + ptrvec->length, ptr->ptr, ptr->length);
+
+    ptrvec->length += ptr->length;
 
     return 0;
 }
@@ -112,13 +81,14 @@ ptrvec_peek(struct ptrvec *ptrvec)
 }
 
 int
-ptrvec_insert(struct ptrvec *ptrvec, void *ptr, size_t index)
+ptrvec_insert(struct ptrvec *ptrvec, const void *ptr, size_t index)
 {
     ASSUME(ptrvec != NULL);
     ASSUME(index <= ptrvec->length);
 
     if (ptrvec->length == ptrvec->capacity
-        && ERR(reserve_one(ptrvec->ptr, &ptrvec->capacity) != 0)) {
+        && ERR(vec_reserve_one_min(&ptrvec->ptr, &ptrvec->capacity,
+                                   sizeof(*ptrvec->ptr)) != 0)) {
 
         return -1;
     }
@@ -126,7 +96,7 @@ ptrvec_insert(struct ptrvec *ptrvec, void *ptr, size_t index)
     memmove(ptrvec->ptr + index + 1, ptrvec->ptr + index,
             ptrvec->length - index - 1);
 
-    ptrvec->ptr[index] = ptr;
+    ptrvec->ptr[index] = (void *)ptr;
 
     ++ptrvec->length;
 
@@ -162,6 +132,8 @@ ptrvec_remove(struct ptrvec *ptrvec, size_t index)
 
     memmove(ptrvec->ptr + index, ptrvec->ptr + index + 1,
             ptrvec->length - index - 1);
+
+    --ptrvec->length;
 }
 
 void
@@ -199,7 +171,7 @@ ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
 }
 
 int
-ptrvec_contains(struct ptrvec *ptrvec, void *ptr)
+ptrvec_contains(struct ptrvec *ptrvec, const void *ptr)
 {
     ASSUME(ptrvec != NULL);
 
@@ -213,7 +185,7 @@ ptrvec_contains(struct ptrvec *ptrvec, void *ptr)
 }
 
 size_t
-ptrvec_find(struct ptrvec *ptrvec, void *ptr)
+ptrvec_find(struct ptrvec *ptrvec, const void *ptr)
 {
     ASSUME(ptrvec != NULL);
 
@@ -243,11 +215,9 @@ ptrvec_resize(struct ptrvec *ptrvec, size_t size)
         return 0;
     }
 
-    tmp = REALLOC(ptrvec->ptr, size * sizeof(*ptrvec->ptr));
-    if (ERR(tmp == NULL)) {
+    if (ERR(ptrvec_reserve(ptrvec, size) != 0)) {
         return -1;
     }
-    ptrvec->ptr = tmp;
 
     for (size_t i = ptrvec->length; i < size; ++i) {
         ptrvec->ptr[i] = NULL;
@@ -269,13 +239,12 @@ ptrvec_reserve(struct ptrvec *ptrvec, size_t size)
         return 0;
     }
 
-    tmp = REALLOC(ptrvec->ptr, size * sizeof(*ptrvec->ptr));
-    if (ERR(tmp == NULL)) {
+    if (ERR(vec_reserve_min(&ptrvec->ptr, &ptrvec->capacity,
+                            sizeof(*ptrvec->ptr), size - ptrvec->length)
+            != 0)) {
+
         return -1;
     }
-    ptrvec->ptr = tmp;
-
-    ptrvec->capacity = size;
 
     return 0;
 }
@@ -296,7 +265,7 @@ ptrvec_free(struct ptrvec *ptrvec)
 {
     ASSUME(ptrvec != NULL);
 
-    FREE(ptrvec->ptr);
+    jfree(ptrvec->ptr);
 }
 
 void
@@ -305,8 +274,8 @@ ptrvec_delete(struct ptrvec *ptrvec)
     ASSUME(ptrvec != NULL);
 
     for (size_t i = 0; i < ptrvec->length; ++i) {
-        FREE(ptrvec->ptr[i]);
+        jfree(ptrvec->ptr[i]);
     }
 
-    FREE(ptrvec->ptr);
+    jfree(ptrvec->ptr);
 }

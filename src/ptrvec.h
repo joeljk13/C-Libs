@@ -47,7 +47,8 @@ ptrvec_peek(struct ptrvec *ptrvec) NONNULL;
 /* Inserts ptr into ptrvec at index, shifting all pointers at and after index
  * by one. Returns 0 on success, nonzero on failure. */
 int
-ptrvec_insert(struct ptrvec *ptrvec, void *ptr, size_t index) NONNULL_AT(1);
+ptrvec_insert(struct ptrvec *ptrvec, const void *ptr, size_t index)
+    NONNULL_AT(1);
 
 /* Inserts each pointer in ptr to ptrvec starting at index, shifting all
  * pointers after index in ptrvec by ptr->length. Returns 0 on succes, nonzero
@@ -79,12 +80,12 @@ ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
 
 /* Returns 1 if ptrvec contains ptr, otherwise returns 0. */
 int
-ptrvec_contains(struct ptrvec *ptrvec, void *ptr) NONNULL_AT(1);
+ptrvec_contains(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
 
 /* Returns the index where ptr is. If ptr is not in ptrvec, returns
  * ptrvec->lengh. */
 size_t
-ptrvec_find(struct ptrvec *ptrvec, void *ptr) NONNULL_AT(1);
+ptrvec_find(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
 
 /* Resizes ptrvec to size. Any new pointers added are set to NULL. Returns 0 on
  * success, nonzero on failure. */
