@@ -319,14 +319,10 @@ parse_format(const char *format) NONNULL
 }
 
 int
-args_init(int argc, const char **argv, const char *format)
+args_init(size_t argc, const char **argv, const char *format)
 {
     ASSUME(argc >= 1);
     ASSUME(argv != NULL);
-
-    // Ignore the name of the process itself
-    argc_ = argc - 1;
-    argv_ = argv + 1;
 
     // Some slots may be left empty, but no more than argc_ slots will ever be
     // used. argc_ is probably small enough that a little extra memory
@@ -346,7 +342,7 @@ args_init(int argc, const char **argv, const char *format)
         return 0;
     }
     else {
-        // Can't use jcalloc, because we need to set it to logical zero
+        // Can't use jcalloc, because we need to set each arg to logical zero
         for (int i = 0; i < argc_; ++i) {
             args[i] = (struct arg){0};
         }

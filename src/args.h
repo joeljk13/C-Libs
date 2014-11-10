@@ -37,7 +37,7 @@ enum arg_type {
 
 /* Initializes the args. Returns 0 on success, nonzero on failure. */
 int
-args_init(int argc, char **argv, const char *format) NONNULL_AT(2);
+args_init(size_t argc, char **argv, const char *format) NONNULL_AT(2);
 
 /* Cleans up resources used by the args. */
 void
