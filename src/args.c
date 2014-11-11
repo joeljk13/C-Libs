@@ -119,8 +119,8 @@ register_arg(const char *name, const char *abbrev, enum arg_type type)
                           * sizeof(*full_abbrev)));
 
     if (ERR_IS_NULLPTR(full_name) || ERR_IS_NULLPTR(full_abbrev)) {
-        FREE(full_name);
-        FREE(full_abbrev);
+        jfree(full_name);
+        jfree(full_abbrev);
 
         return -1;
     }
@@ -234,7 +234,7 @@ lex_format(const char *format, struct ptrvec *stack,
     case FORMAT_ORDERED_BEGIN:
     case FORMAT_UNORDERED_BEGIN:
     case FORMAT_OPTIONAL_BEGIN:
-        data = MALLOC(sizeof(*data));
+        data = jmalloc(sizeof(*data));
         if (ERR(data == NULL)) {
             return -1;
         }
@@ -243,7 +243,7 @@ lex_format(const char *format, struct ptrvec *stack,
         data->grouping = *format;
 
         if (ERR(ptrvec_push(&stack, data) != 0)) {
-            FREE(data);
+            jfree(data);
             return -1;
         }
 
@@ -288,10 +288,12 @@ lex_format(const char *format, struct ptrvec *stack,
 static inline int
 parse_format(const char *format) NONNULL
 {
+    // Each pointer in stack should be heap-allocated
     struct ptrvec stack;
     struct format_options options = {0};
 
-    const char first = '(';
+    // Variable necessary to get its address
+    const char first = FORMAT_DEFAULT_BEGIN;
 
     ASSUME(format != NULL);
 
@@ -324,6 +326,9 @@ args_init(size_t argc, const char **argv, const char *format)
     ASSUME(argc >= 1);
     ASSUME(argv != NULL);
 
+    argc_ = argc;
+    argv_ = argv;
+
     // Some slots may be left empty, but no more than argc_ slots will ever be
     // used. argc_ is probably small enough that a little extra memory
     // shouldn't matter.
@@ -334,7 +339,7 @@ args_init(size_t argc, const char **argv, const char *format)
 
     if (format == NULL) {
         // There was no format specified, so use the raw args. Basically 
-        // register each arg that exists and say that it was found.
+        // register each arg that exists as a bool and say that it was found.
         for (int i = 0; i < argc_; ++i) {
             args[i] = (struct arg){argv[i], NULL, ARG_BOOL, ARG_IS_FOUND};
         }
@@ -348,7 +353,7 @@ args_init(size_t argc, const char **argv, const char *format)
         }
 
         if (ERR(parse_format(format) != 0)) {
-            FREE(args);
+            jfree(args);
             return -1;
         }
     }
@@ -360,12 +365,12 @@ void
 args_free(void)
 {
     for (int i = 0; i < n_args; ++i) {
-        FREE(args[i].name);
-        FREE(args[i].abbrev);
-        FREE(args[i].value);
+        jfree(args[i].name);
+        jfree(args[i].abbrev);
+        jfree(args[i].value);
     }
 
-    FREE(args);
+    jfree(args);
 }
 
 int
