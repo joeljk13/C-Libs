@@ -1,4 +1,5 @@
 #!/bin/sh
+
 PARAMS="-std=c99"
 DEBUG=true
 OPTIMIZATION="-O0"
