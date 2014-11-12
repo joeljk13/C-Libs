@@ -72,7 +72,7 @@ ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end) NONNULL;
 void
 ptrvec_remove_fast(struct ptrvec *ptrvec, size_t index) NONNULL;
 
-/* Same as ptrvec_remove_fast, but faster, at least for small ranges. However,
+/* Same as ptrvec_remove_r, but faster, at least for small ranges. However,
  * this doesn't preserve the ordering of the pointers. */
 void
 ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
