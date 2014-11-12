@@ -23,7 +23,7 @@ SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
 TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
 
 # tmp
-SRCS="./src/alloc.c ./src/main.c ./src/vec.c ./src/ptrvec.c"
+SRCS="./src/alloc.c ./src/main.c ./src/vec.c ./src/ptrvec.c ./src/str.c"
 
 CPARAMS="$PARAMS $WARNINGS $ERRS"
 
