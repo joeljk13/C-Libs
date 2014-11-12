@@ -16,6 +16,7 @@ int
 test_main(int argc, char *argv[])
 {
     ASSUME(argc > 0);
+    ASSUME(argv != NULL);
 
 #ifdef NDEBUG
 
