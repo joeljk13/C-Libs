@@ -1,27 +1,15 @@
 #include "main.h"
 
-#include "alloc.h"
-
-#include <assert.h>
 #include <stdio.h>
 
-#ifdef NDEBUG
-
-#include <stdlib.h>
-#include <time.h>
-
-#endif
+int
+test_main(int argc, char *argv[]);
 
 int
 test_main(int argc, char *argv[])
 {
     ASSUME(argc > 0);
-
-#ifdef NDEBUG
-
-    srand(time(NULL));
-
-#endif
+    ASSUME(argv[argc] == NULL);
 
     printf("Hello world!\n");
 

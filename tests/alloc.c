@@ -10,6 +10,8 @@ main(void)
 {
     void *ptr;
 
+    (void)TEST_FAIL;
+
     TEST_CHECK("alloc_init()");
     alloc_init();
     TEST_PASS();

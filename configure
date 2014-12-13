@@ -1,19 +1,32 @@
 #!/bin/sh
-PARAMS="-std=c99"
+
+PARAMS="-std=c99 -fverbose-asm"
 DEBUG=true
-OPTIMIZATION="-O0"
-WARNINGS="-Wno-unused-value -Wno-attributes"
-ERRS="-pedantic-errors"
+OPTIMIZATION="-O3 -flto"
+WARNINGS="-Wall -Wextra -Wundef -Wshadow -Wcast-align -Wjump-misses-init \
+    -Wstrict-prototypes -Wstrict-overflow=4 -Wwrite-strings \
+    -Waggregate-return -Wcast-qual -Wswitch-default -Wstrict-aliasing \
+    -Wconversion -Wunreachable-code -Wformat=2 -Winit-self -Wuninitialized \
+    -Wmissing-prototypes -Wold-style-definition -Wdouble-promotion \
+    -Wsuggest-attribute=pure -Wsuggest-attribute=const \
+    -Wsuggest-attribute=noreturn -Wsuggest-attribute=format \
+    -Wdeclaration-after-statement -Wunsafe-loop-optimizations \
+    -Wmissing-declarations -Wmissing-field-initializers -Wredundant-decls \
+    -Winline -Wvla -Wdisabled-optimization -Wstack-protector \
+    -Wvector-operation-performance"
+
+ERRS="-pedantic-errors -Werror -Wno-error=attributes -Wno-error=cast-align \
+    -Wno-error=cast-qual"
 DEFS=""
 TESTDEFS="COLOR_RESET='\"$(tput sgr 0)\"' \
     COLOR_RED='\"$(tput setaf 1)\"' \
     COLOR_GREEN='\"$(tput setaf 2)\"' \
     COLOR_YELLOW='\"$(tput setaf 3)\"'"
 EXEC="test"
-LINKS="jemalloc"
+LINKS=""
 SRCDIR="src"
 TESTDIR="tests"
-CC="clang"
+CC="gcc"
 MAKEFILE="Makefile"
 EXT="c"
 MAIN="int main(int c,char**v){int ${EXEC}_main(int,char**);return \
@@ -29,7 +42,8 @@ CPARAMS="$PARAMS $WARNINGS $ERRS"
 
 if $DEBUG
 then
-    CPARAMS="$CPARAMS -g -O0 -DDEBUG"
+    CPARAMS="$CPARAMS -g -Og -DDEBUG -Wno-error=unreachable-code -ftrapv \
+    -fstack-check -fstack-protector-all"
     LPARAMS="$LPARAMS -g"
 else
     CPARAMS="$CPARAMS $OPTIMIZATION -DNDEBUG"

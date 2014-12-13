@@ -203,8 +203,6 @@ ptrvec_find(struct ptrvec *ptrvec, const void *ptr)
 int
 ptrvec_resize(struct ptrvec *ptrvec, size_t size)
 {
-    void *tmp;
-
     ASSUME(ptrvec != NULL);
 
     if (size <= ptrvec->capacity) {
@@ -233,8 +231,6 @@ ptrvec_resize(struct ptrvec *ptrvec, size_t size)
 int
 ptrvec_reserve(struct ptrvec *ptrvec, size_t size)
 {
-    void *tmp;
-
     ASSUME(ptrvec != NULL);
 
     if (size <= ptrvec->capacity) {

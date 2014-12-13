@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-static inline void
+static void
 TEST_CHECK(const char *str)
 {
     ASSUME(str != NULL);
@@ -14,21 +14,21 @@ TEST_CHECK(const char *str)
     fflush(stdout);
 }
 
-static inline void
+static void
 TEST_PASS(void)
 {
     printf("%s[PASS]\n%s", COLOR_GREEN, COLOR_RED);
     fflush(stdout);
 }
 
-static inline void
+static void
 TEST_FAIL(void)
 {
     printf("%s[FAIL]\n", COLOR_RED);
     fflush(stdout);
 }
 
-static inline void
+static void
 TEST_TODO_(const char *msg)
 {
     printf("%s[TODO] %s\n%s", COLOR_YELLOW, msg, COLOR_RED);

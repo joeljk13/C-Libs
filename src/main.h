@@ -11,10 +11,10 @@
 #define NONNULL __attribute__((nonnull))
 #define NONNULL_AT(...) __attribute__((nonnull(__VA_ARGS__)))
 
-#ifdef __GNUC__
-
+#ifndef __clang__
 #define RETURNS_NONNULL __attribute__((returns_nonnull))
-
+#else
+#define RETURNS_NONNULL
 #endif
 
 #define CONST __attribute__((const))

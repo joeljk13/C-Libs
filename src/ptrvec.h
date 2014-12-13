@@ -41,7 +41,7 @@ void *
 ptrvec_pop(struct ptrvec *ptrvec) NONNULL;
 
 /* Returns the last pointer in ptrvec. Assumes ptrvec is not empty. */
-void *
+void * PURE
 ptrvec_peek(struct ptrvec *ptrvec) NONNULL;
 
 /* Inserts ptr into ptrvec at index, shifting all pointers at and after index
@@ -79,12 +79,12 @@ ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
     NONNULL;
 
 /* Returns 1 if ptrvec contains ptr, otherwise returns 0. */
-int
+int PURE
 ptrvec_contains(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
 
 /* Returns the index where ptr is. If ptr is not in ptrvec, returns
  * ptrvec->lengh. */
-size_t
+size_t PURE
 ptrvec_find(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
 
 /* Resizes ptrvec to size. Any new pointers added are set to NULL. Returns 0 on

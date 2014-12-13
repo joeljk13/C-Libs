@@ -26,7 +26,6 @@ int
 vec_reserve_one_min(void *ptr, size_t *n, size_t size)
 {
     void *tmp;
-    size_t bytes;
     size_t cap;
 
     ASSUME(ptr != NULL);

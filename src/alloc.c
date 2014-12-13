@@ -121,7 +121,7 @@ add_ptr_info(const void *ptr, size_t bytes)
     return 0;
 }
 
-static inline const void * NONNULL
+static inline const void * NONNULL PURE
 find_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
@@ -146,8 +146,6 @@ remove_ptr_info(const void *ptr)
     ASSUME(ptr != NULL);
 
     for (size_t i = 0; i < n_ptr_infos; ++i) {
-        struct ptr_info *tmp;
-
         if (ptr != ptr_infos[i].ptr) {
             continue;
         }
@@ -189,14 +187,14 @@ alloc_free(void)
         fprintf(stderr, "Memory not freed!\n\tLine: %i\n\tFile: %s\n"
                 "\tBytes: %u\n\tPointer: %p\n",
                 mem_info->line, mem_info->file, mem_info->bytes,
-                (void *)mem_info);
+                (const void *)mem_info);
 
         FREE(ptr_infos[i].ptr);
     }
 
     FREE(ptr_infos);
 
-    return n_ptr_infos;
+    return n_ptr_infos != 0;
 }
 
 static inline const char *
@@ -217,7 +215,8 @@ get_buf(size_t len)
 
     for (size_t i = 0; i < len; ++i) {
         do {
-            str[i] = rand() % (CHAR_MAX - CHAR_MIN) + CHAR_MIN;
+            str[i] = (char)(rand() % ((int)CHAR_MAX - (int)CHAR_MIN) +
+                            CHAR_MIN);
         } while (str[i] == '\0');
 
         ASSERT(str[i] != '\0',
@@ -327,7 +326,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
 {
     const char *old_ptr;
     char *new_ptr;
-    struct mem_info *mem_info;
+    const struct mem_info *mem_info;
 
     ASSUME(line >= 0);
     ASSUME(file != NULL);
@@ -357,7 +356,7 @@ realloc_d(void *ptr, size_t n, int line, const char *file)
         return NULL;
     }
 
-    mem_info = (struct mem_info *)old_ptr;
+    mem_info = (const struct mem_info *)old_ptr;
 
     if (ERR(ptr != old_ptr + sizeof(struct mem_info)
         + strlen((mem_info->pre_buf)))) {
@@ -436,7 +435,7 @@ do_free_d(void *ptr, int line, const char *file)
                     "\tBytes: %u\n\tOverwriten byte: %i\n\tPointer: %p\n",
                     mem_info->line, mem_info->file, line, file,
                     (int)mem_info->pre_buf[i], (int)p[i], mem_info->bytes,
-                    i - (int)pre_len, ptr);
+                    i - (size_t)pre_len, ptr);
 
             err = -1;
         }
