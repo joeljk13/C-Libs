@@ -28,12 +28,6 @@ TEST_FAIL(void)
     fflush(stdout);
 }
 
-static void
-TEST_TODO_(const char *msg)
-{
-    printf("%s[TODO] %s\n%s", COLOR_YELLOW, msg, COLOR_RED);
-}
-
 #define TEST_ASSERT(b) do { \
     if (!(b)) { \
         TEST_FAIL(); \
@@ -42,7 +36,7 @@ TEST_TODO_(const char *msg)
 } while (0)
 
 #define TEST_TODO(m) do { \
-    TEST_TODO_(#m); \
+    printf("%s[TODO] %s\n%s", COLOR_YELLOW, (#m), COLOR_RED); \
 } while (0)
 
 #endif
