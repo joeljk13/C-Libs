@@ -1,7 +1,12 @@
 #!/bin/sh
 
-PARAMS="-std=c99 -fverbose-asm"
+# Parameters
+
+CC=gcc
+CFLAGS=
 DEBUG=true
+# Optimization is only relevant when not in debug mode; see DEBUGPARAMS below
+# for the actual optimization setting then
 OPTIMIZATION="-O3 -flto"
 WARNINGS="-Wall -Wextra -Wundef -Wshadow -Wcast-align -Wjump-misses-init \
     -Wstrict-prototypes -Wstrict-overflow=4 -Wwrite-strings \
@@ -14,36 +19,39 @@ WARNINGS="-Wall -Wextra -Wundef -Wshadow -Wcast-align -Wjump-misses-init \
     -Winline -Wvla -Wdisabled-optimization -Wstack-protector \
     -Wvector-operation-performance"
 
-ERRS="-pedantic-errors -Werror -Wno-error=attributes -Wno-error=cast-align \
-    -Wno-error=cast-qual"
-DEFS=""
-TESTDEFS="COLOR_RESET='\"$(tput sgr 0)\"' \
+ERRS="-pedantic-errors -Werror -Wno-error=cast-align -Wno-error=cast-qual"
+
+DEFS=
+TESTDEFS=" \
+    TESTING=1 \
     COLOR_RED='\"$(tput setaf 1)\"' \
     COLOR_GREEN='\"$(tput setaf 2)\"' \
-    COLOR_YELLOW='\"$(tput setaf 3)\"'"
-EXEC="test"
-LINKS=""
-SRCDIR="src"
-TESTDIR="tests"
-CC="gcc"
-MAKEFILE="Makefile"
-EXT="c"
-MAIN="int main(int c,char**v){int ${EXEC}_main(int,char**);return \
-    ${EXEC}_main(c,v);}"
+    COLOR_YELLOW='\"$(tput setaf 3)\"' \
+    COLOR_RESET='\"$(tput sgr 0)\"'"
 
-SRCS=$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")
-TESTS=$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")
+EXEC=test
+LINKS=
+SRCDIR=src
+TESTDIR=tests
+MAKEFILE=Makefile
+EXT=c
+CPARAMS="-std=c99 $WARNINGS $ERRS"
+DEBUGPARAMS="-g -Og -Wno-error=unreachable-code -ftrapv -fstack-check \
+    -fstack-protector-all -fverbose-asm"
+MAINFILE=main
 
-# tmp
-SRCS="./src/alloc.c ./src/main.c ./src/vec.c ./src/ptrvec.c"
+# Programmatically generated parameters
 
-CPARAMS="$PARAMS $WARNINGS $ERRS"
+SRCS="$(find -wholename "./$SRCDIR/*.$EXT" | tr "\n" " ")"
+TESTS="$(find -wholename "./$TESTDIR/*.$EXT" | tr "\n" " ")"
+
+SRCS_NOMAIN="$(printf "%s\n" "$SRCS" | sed \
+    "s/[^ ]*$SRCDIR\/${MAINFILE}.$EXT//")"
 
 if $DEBUG
 then
-    CPARAMS="$CPARAMS -g -Og -DDEBUG -Wno-error=unreachable-code -ftrapv \
-    -fstack-check -fstack-protector-all"
-    LPARAMS="$LPARAMS -g"
+    CPARAMS="$CPARAMS -DDEBUG $DEBUGPARAMS"
+    LPARAMS="$LPARAMS $DEBUGPARAMS"
 else
     CPARAMS="$CPARAMS $OPTIMIZATION -DNDEBUG"
 fi
@@ -53,10 +61,10 @@ do
     CPARAMS="$CPARAMS -D$DEF"
 done
 
-LPARAMS=""
+CPARAMS="$CPARAMS $CFLAGS"
 
-LLINKS=""
-
+LPARAMS=
+LLINKS=
 if ! $DEBUG
 then
     LPARAMS="$LPARAMS $OPTIMIZATION"
@@ -68,45 +76,46 @@ do
 done
 
 TPARAMS="$CPARAMS"
-
 for TESTDEF in $TESTDEFS
 do
     TPARAMS="$TPARAMS -D$TESTDEF"
 done
 
+# Actually create the make file
+
 printf "
 SHELL = /bin/sh
 SRCS = %s
-SRCOBJS = \$(SRCS:.$EXT=.o)
+SRCS_NOMAIN = %s
+SRCOBJS = \$(SRCS:.%s=.o)
+SRCOBJS_NOMAIN = \$(SRCS_NOMAIN:.%s=.o)
 TESTS = %s
-TESTOBJS = \$(TESTS:.$EXT=.o)
+TESTOBJS = \$(TESTS:.%s=.o)
 CPARAMS = %s
 LPARAMS = %s
-LINKS = $LLINKS
+LINKS = %s
 TPARAMS = %s
 
-$EXEC: \$(SRCOBJS) $SRCDIR/$EXEC-main.o
-\t$CC -o \$@ \$(LPARAMS) \$^ \$(LINKS)
-$SRCDIR/$EXEC-main.o:
-\techo '%s' | $CC -c -o \$@ -x $EXT \$(CPARAMS) -
-" "$SRCS" "$TESTS" "$CPARAMS" "$LPARAMS" "$TPARAMS" "$MAIN" > $MAKEFILE
+%s: \$(SRCOBJS)
+\t%s -o \$@ \$(LPARAMS) \$^ \$(LINKS)
+" "$SRCS" "$SRCS_NOMAIN" "$EXT" "$EXT" "$TESTS" "$EXT" "$CPARAMS" "$LPARAMS" \
+    "$LLINKS" "$TPARAMS" "$EXEC" "$CC" > "$MAKEFILE"
 
 for SRC in $SRCS
 do
-    printf "$SRCDIR/%s\n\t$CC -c -o \$@ \$(CPARAMS) \$<\n" "$($CC -MM $SRC)" >> \
-        $MAKEFILE
+    printf "%s/%s\n\t%s -c -o \$@ \$(CPARAMS) \$<\n" \
+        "$SRCDIR" "$($CC -MM "$SRC")" "$CC" >> "$MAKEFILE"
 done
 
 printf "
 .PHONY: check
 check: \$(TESTOBJS) ;
-" >> $MAKEFILE
+" >> "$MAKEFILE"
 
 for TEST in $TESTS
 do
-    # the rm check \$@ could use -f, but it shouldn't be necessary
-    printf "$TESTDIR/%s\n\t@$CC -c -o \$@ \$(TPARAMS) \$< \
-        \n\t$CC -o check \$(LPARAMS) \$@ \$(SRCOBJS) \$(LINKS) \
+    printf "%s/%s\n\t@%s -c -o \$@ \$(TPARAMS) \$< \
+        \n\t%s -o check \$(LPARAMS) \$@ \$(SRCOBJS_NOMAIN) \$(LINKS) \
         \n\t@if ! ./check; then echo; tput setaf 1; echo 'Check failed!'; \
             tput sgr 0; exit 1; fi \
         \n\t@echo \
@@ -114,12 +123,13 @@ do
         \n\t@echo 'Check succeeded!' \
         \n\t@echo \
         \n\t@tput sgr 0 \
-        \n\t@rm check \$@\n\n" \
-        "$($CC -MM $TEST)" >> $MAKEFILE
+        \n\t@rm -f check \$@\n\n" \
+        "$TESTDIR" "$($CC -MM "$TEST")" "$CC" "$CC" >> "$MAKEFILE"
 done
 
 printf "\n
 .PHONY: clean
 clean:
-\trm -rf %s *.[ios] \$(SRCOBJS) \$(TESTOBJS) $SRCDIR/$EXEC-main.o check
-" "$EXEC" >> $MAKEFILE
+\tfind -name '*.[ios]' -exec rm '{}' +
+\trm -f \$(SRCOBJS) \$(TESTOBJS) check '%s'
+" "$EXEC" >> "$MAKEFILE"
