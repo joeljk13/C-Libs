@@ -63,7 +63,7 @@ struct mem_info {
 
 // The line might not always be exactly right, but it should be close enough to
 // identify where the error occured
-static void NONNULL
+static void
 mem_fail(size_t bytes, int line, const char *file)
 {
     ASSUME(line >= 0);
@@ -86,7 +86,7 @@ static struct ptr_info *ptr_infos = NULL;
 static size_t n_ptr_infos = 0;
 static size_t cap_ptr_infos = 0;
 
-static inline int NONNULL
+static inline int
 add_ptr_info(const void *ptr, size_t bytes)
 {
     struct ptr_info *tmp;
@@ -121,7 +121,7 @@ add_ptr_info(const void *ptr, size_t bytes)
     return 0;
 }
 
-static inline const void * NONNULL PURE
+static inline const void *
 find_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
@@ -140,7 +140,7 @@ find_ptr_info(const void *ptr)
     return NULL;
 }
 
-static inline int NONNULL
+static inline int
 remove_ptr_info(const void *ptr)
 {
     ASSUME(ptr != NULL);
@@ -228,7 +228,7 @@ get_buf(size_t len)
     return str;
 }
 
-static void * NONNULL
+static void *
 alloc_d(size_t n, int clear, int line, const char *file)
 {
     char *ptr, *tmp;

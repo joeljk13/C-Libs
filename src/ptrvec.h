@@ -20,95 +20,92 @@ struct ptrvec {
 
 /* Initializes the ptrvec. Returns 0 on success, nonzero on failure. */
 int
-ptrvec_init(struct ptrvec *ptrvec) NONNULL;
+ptrvec_init(struct ptrvec *ptrvec);
 
 /* Sets all the pointers to NULL. */
 void
-ptrvec_zero(struct ptrvec *ptrvec) NONNULL;
+ptrvec_zero(struct ptrvec *ptrvec);
 
 /* Appends ptr to the end of ptrvec. Returns 0 on success, nonzero on failure. */
 int
-ptrvec_push(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
+ptrvec_push(struct ptrvec *ptrvec, const void *ptr);
 
 /* Appends each pointer in ptr to ptrvec. Returns 0 on success, nonzero on
  * failure. */
 int
-ptrvec_push_v(struct ptrvec *ptrvec, struct ptrvec *ptr) NONNULL_AT(1);
+ptrvec_push_v(struct ptrvec *ptrvec, struct ptrvec *ptr);
 
 /* Removes the last pointer from ptrvec and returns it. Assumes ptrvec is not
  * empty. */
 void *
-ptrvec_pop(struct ptrvec *ptrvec) NONNULL;
+ptrvec_pop(struct ptrvec *ptrvec);
 
 /* Returns the last pointer in ptrvec. Assumes ptrvec is not empty. */
-void * PURE
-ptrvec_peek(struct ptrvec *ptrvec) NONNULL;
+void *
+ptrvec_peek(struct ptrvec *ptrvec);
 
 /* Inserts ptr into ptrvec at index, shifting all pointers at and after index
  * by one. Returns 0 on success, nonzero on failure. */
 int
-ptrvec_insert(struct ptrvec *ptrvec, const void *ptr, size_t index)
-    NONNULL_AT(1);
+ptrvec_insert(struct ptrvec *ptrvec, const void *ptr, size_t index);
 
 /* Inserts each pointer in ptr to ptrvec starting at index, shifting all
  * pointers after index in ptrvec by ptr->length. Returns 0 on succes, nonzero
  * on failure. */
 int
-ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index)
-    NONNULL;
+ptrvec_insert_v(struct ptrvec *ptrvec, struct ptrvec *ptr, size_t index);
 
 /* Removes the pointer at index from ptrvec, shifting each pointer after index
  * by one. */
 void
-ptrvec_remove(struct ptrvec *ptrvec, size_t index) NONNULL;
+ptrvec_remove(struct ptrvec *ptrvec, size_t index);
 
 /* Removes the pointers in [begin, end), and shifts the pointers starting at
  * end by (end - begin). */
 void
-ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end) NONNULL;
+ptrvec_remove_r(struct ptrvec *ptrvec, size_t begin, size_t end);
 
 /* Same as ptrvec_remove, but faster. However, this doesn't preserve the
  * ordering of the pointers. */
 void
-ptrvec_remove_fast(struct ptrvec *ptrvec, size_t index) NONNULL;
+ptrvec_remove_fast(struct ptrvec *ptrvec, size_t index);
 
 /* Same as ptrvec_remove_fast, but faster, at least for small ranges. However,
  * this doesn't preserve the ordering of the pointers. */
 void
-ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end)
-    NONNULL;
+ptrvec_remove_fast_r(struct ptrvec *ptrvec, size_t begin, size_t end);
 
 /* Returns 1 if ptrvec contains ptr, otherwise returns 0. */
-int PURE
-ptrvec_contains(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
+int
+ptrvec_contains(struct ptrvec *ptrvec, const void *ptr);
 
 /* Returns the index where ptr is. If ptr is not in ptrvec, returns
  * ptrvec->lengh. */
-size_t PURE
-ptrvec_find(struct ptrvec *ptrvec, const void *ptr) NONNULL_AT(1);
+size_t
+ptrvec_find(struct ptrvec *ptrvec, const void *ptr);
 
 /* Resizes ptrvec to size. Any new pointers added are set to NULL. Returns 0 on
  * success, nonzero on failure. */
 int
-ptrvec_resize(struct ptrvec *ptrvec, size_t size) NONNULL;
+ptrvec_resize(struct ptrvec *ptrvec, size_t size);
 
 /* Reserves enough memory for at least size pointers. Returns 0 on success, nonzero
  * on failure. */
 int
-ptrvec_reserve(struct ptrvec *ptrvec, size_t size) NONNULL;
+ptrvec_reserve(struct ptrvec *ptrvec, size_t size);
 
 /* Removes all pointers outside the range [begin, end). Returns 0 on success,
  * nonzero on failure. */
 void
-ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end) NONNULL;
+ptrvec_slice(struct ptrvec *ptrvec, size_t begin, size_t end);
 
 /* Frees the memory used by ptrvec. */
 void
-ptrvec_free(struct ptrvec *ptrvec) NONNULL;
+ptrvec_free(struct ptrvec *ptrvec);
 
 /* Frees the memory used by each pointer in ptrvec and the memory used by
  * ptrvec. Only use this if all the pointers point to heap memory. */
 void
-ptrvec_delete(struct ptrvec *ptrvec) NONNULL;
+ptrvec_delete(struct ptrvec *ptrvec);
 
 #endif

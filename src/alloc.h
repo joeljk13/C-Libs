@@ -73,13 +73,13 @@ free_d(void *ptr, int line, const char *file);
  * they print a message to stderr and call abort(). Also, these functions
  * assume that you don't try to allocate 0 bytes. */
 
-void * MALLOC_LIKE RETURNS_NONNULL
+void *
 xmalloc(size_t n);
 
-void * MALLOC_LIKE RETURNS_NONNULL
+void *
 xcalloc(size_t n, size_t size);
 
-void * RETURNS_NONNULL
+void *
 xrealloc(void *ptr, size_t n);
 
 #ifdef NDEBUG
@@ -91,13 +91,13 @@ xrealloc(void *ptr, size_t n);
 
 #else
 
-void * MALLOC_LIKE RETURNS_NONNULL NONNULL
+void *
 xmalloc_d(size_t n, int line, const char *file);
 
-void * MALLOC_LIKE RETURNS_NONNULL NONNULL
+void *
 xcalloc_d(size_t n, size_t size, int line, const char *file);
 
-void * RETURNS_NONNULL
+void *
 xrealloc_d(void *ptr, size_t n, int line, const char *file);
 
 void

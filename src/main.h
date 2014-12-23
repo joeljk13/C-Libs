@@ -1,27 +1,10 @@
 #ifndef MAIN_H_
 #define MAIN_H_ 1
 
-// #define JEMALLOC
-
 #include <assert.h>
 #include <stddef.h>
 
 /* This file contains GCC specific code. */
-
-#define NONNULL __attribute__((nonnull))
-#define NONNULL_AT(...) __attribute__((nonnull(__VA_ARGS__)))
-
-#ifndef __clang__
-#define RETURNS_NONNULL __attribute__((returns_nonnull))
-#else
-#define RETURNS_NONNULL
-#endif
-
-#define CONST __attribute__((const))
-
-#define PURE __attribute__((pure))
-
-#define MALLOC_LIKE __attribute__((malloc))
 
 #define UNUSED(v) ((void)(v))
 

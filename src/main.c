@@ -3,10 +3,7 @@
 #include <stdio.h>
 
 int
-test_main(int argc, char *argv[]);
-
-int
-test_main(int argc, char *argv[])
+main(int argc, char *argv[])
 {
     ASSUME(argc > 0);
     ASSUME(argv[argc] == NULL);
