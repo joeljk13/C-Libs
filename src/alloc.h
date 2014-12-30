@@ -18,7 +18,7 @@
 #ifdef NDEBUG
 
 #define alloc_size(s) ((void)0)
-#define alloc_init() ((void)0)
+#define alloc_init() (0)
 #define alloc_free() (0)
 
 #ifdef JEMALLOC
@@ -43,7 +43,8 @@
 void
 alloc_size(size_t size);
 
-#define alloc_init() ((void)0)
+int
+alloc_init(void);
 
 int
 alloc_free(void);

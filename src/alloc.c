@@ -73,6 +73,8 @@ mem_fail(size_t bytes, int line, const char *file)
             line, file, bytes);
 }
 
+static int alloc_freed = 0;
+
 // TODO - Optimize the pointer info storage. Maybe adapt ptrvec to a vector of
 // struct ptr_info? Or maybe use a tree to get O(log(n)) insertion, removal,
 // and deletion?
@@ -175,11 +177,26 @@ remove_ptr_info(const void *ptr)
     return -1;
 }
 
-// alloc_init() does nothing
+static void
+alloc_exit(void)
+{
+    if (!alloc_freed) {
+        alloc_freed = 1;
+        alloc_free();
+    }
+}
+
+int
+alloc_init(void)
+{
+    return atexit(&alloc_exit);
+}
 
 int
 alloc_free(void)
 {
+    alloc_freed = 1;
+
     for (size_t i = 0; i < n_ptr_infos; ++i) {
         const struct mem_info *mem_info =
             (const struct mem_info *)ptr_infos[i].ptr;
