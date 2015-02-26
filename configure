@@ -81,7 +81,7 @@ do
     LLINKS="$LLINKS -l$LINK"
 done
 
-TPARAMS="$CPARAMS"
+TPARAMS=
 for TESTDEF in $TESTDEFS
 do
     TPARAMS="$TPARAMS -D$TESTDEF"
@@ -97,19 +97,19 @@ SRCOBJS = \$(SRCS:.%s=.o)
 SRCOBJS_NOMAIN = \$(SRCS_NOMAIN:.%s=.o)
 TESTS = %s
 TESTOBJS = \$(TESTS:.%s=.o)
-CPARAMS = %s
-LPARAMS = %s
+CFLAGS = %s
+LDFLAGS = %s
 LINKS = %s
-TPARAMS = %s
+TFLAGS = \$(CFLAGS) %s
 
 %s: \$(SRCOBJS)
-\t%s -o \$@ \$(LPARAMS) \$^ \$(LINKS)
+\t%s -o \$@ \$(LDFLAGS) \$^ \$(LINKS)
 " "$SRCS" "$SRCS_NOMAIN" "$EXT" "$EXT" "$TESTS" "$EXT" "$CPARAMS" "$LPARAMS" \
     "$LLINKS" "$TPARAMS" "$EXEC" "$CC" > "$MAKEFILE"
 
 for SRC in $SRCS
 do
-    printf "%s/%s\n\t%s -c -o \$@ \$(CPARAMS) \$<\n" \
+    printf "%s/%s\n\t%s -c -o \$@ \$(CFLAGS) \$<\n" \
         "$SRCDIR" "$($CC -MM "$SRC")" "$CC" >> "$MAKEFILE"
 done
 
@@ -120,8 +120,8 @@ check: \$(TESTOBJS) ;
 
 for TEST in $TESTS
 do
-    printf "%s/%s\n\t@%s -c -o \$@ \$(TPARAMS) \$< \
-        \n\t%s -o check \$(LPARAMS) \$@ \$(SRCOBJS_NOMAIN) \$(LINKS) \
+    printf "%s/%s\n\t@%s -c -o \$@ \$(TFLAGS) \$< \
+        \n\t%s -o check \$(LDFLAGS) \$@ \$(SRCOBJS_NOMAIN) \$(LINKS) \
         \n\t@if ! ./check; then echo; tput setaf 1; echo 'Check failed!'; \
             tput sgr 0; exit 1; fi \
         \n\t@echo \
