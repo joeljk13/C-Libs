@@ -7,7 +7,7 @@ CFLAGS=
 DEBUG=true
 # Optimization is only relevant when not in debug mode; see DEBUGPARAMS below
 # for the actual optimization setting then
-OPTIMIZATION="-O3 -flto"
+OPTIMIZATION="-O3 -flto -Wl,-O1"
 WARNINGS="-Wall -Wextra -Wundef -Wshadow -Wcast-align -Wjump-misses-init \
     -Wstrict-prototypes -Wstrict-overflow=4 -Wwrite-strings \
     -Waggregate-return -Wcast-qual -Wswitch-default -Wstrict-aliasing \
@@ -30,14 +30,20 @@ TESTDEFS=" \
     COLOR_RESET='\"$(tput sgr 0)\"'"
 
 EXEC=test
-LINKS=
+LINKS=asan
 SRCDIR=src
 TESTDIR=tests
 MAKEFILE=Makefile
 EXT=c
-CPARAMS="-std=c99 $WARNINGS $ERRS"
-DEBUGPARAMS="-g -Og -Wno-error=unreachable-code -ftrapv -fstack-check \
-    -fstack-protector-all -fverbose-asm"
+CPARAMS="-std=c99 -Wl,-build-id=sha1 $WARNINGS $ERRS"
+DEBUGPARAMS="-ggdb3 -O0 -Wl,-O0 -Wno-error=unreachable-code -ftrapv \
+    -fstack-check -fstack-protector-all -fverbose-asm -fbounds-check \
+    -fsanitize=address -fmessage-length=72"
+# These could be useful but don't currently work (gcc 4.8.3):
+# -fdiagnostics-color=auto
+# -fsanitize=thread
+# -fsanitize=undefined
+# -fsanitize=float-divide-by-zero
 MAINFILE=main
 
 # Programmatically generated parameters
