@@ -1,8 +1,6 @@
 #include "main.h"
 #include "alloc.h"
 
-#include "vec.h"
-
 #include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
