@@ -67,7 +67,7 @@ mem_fail(size_t bytes, int line, const char *file)
     ASSUME(line >= 0);
     ASSUME(file != NULL);
 
-    fprintf(stderr, "Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %u\n",
+    fprintf(stderr, "Memory failure!\n\tLine: %i\n\tFile: %s\n\tBytes: %zu\n",
             line, file, bytes);
 }
 
@@ -200,7 +200,7 @@ alloc_free(void)
             (const struct mem_info *)ptr_infos[i].ptr;
 
         fprintf(stderr, "Memory not freed!\n\tLine: %i\n\tFile: %s\n"
-                "\tBytes: %u\n\tPointer: %p\n",
+                "\tBytes: %zu\n\tPointer: %p\n",
                 mem_info->line, mem_info->file, mem_info->bytes,
                 (const void *)mem_info);
 
@@ -433,7 +433,7 @@ do_free_d(void *ptr, int line, const char *file)
         fprintf(stderr, "Freeing shifted pointer!\n"
                 "\tLine allocated: %i\n\tFile allocated: %s\n"
                 "\tLine freed: %i\n\tFile freed: %s\n"
-                "\tBytes: %u\n"
+                "\tBytes: %zu\n"
                 "\tPointer: %p\n\tOffset: %td\n",
                 mem_info->line, mem_info->file, line, file, mem_info->bytes,
                 p + pre_len, (const char *)ptr - (p + pre_len));
@@ -447,7 +447,7 @@ do_free_d(void *ptr, int line, const char *file)
                     "\tLine allocated: %i\n\tFile allocated: %s\n"
                     "\tLine freed: %i\n\tFile freed: %s\n"
                     "\tOld value: %i\n\tNew value: %i\n"
-                    "\tBytes: %u\n\tOverwriten byte: %i\n\tPointer: %p\n",
+                    "\tBytes: %zu\n\tOverwriten byte: %zu\n\tPointer: %p\n",
                     mem_info->line, mem_info->file, line, file,
                     (int)mem_info->pre_buf[i], (int)p[i], mem_info->bytes,
                     i - (size_t)pre_len, ptr);
@@ -465,7 +465,7 @@ do_free_d(void *ptr, int line, const char *file)
                         "\tLine allocated: %i\n\tFile allocated: %s\n"
                         "\tLine freed: %i\n\tFile freed: %s\n"
                         "\tOld value: %i\n\tNew value: %i\n"
-                        "\tBytes: %u\n\tOverwriten byte: %i\n"
+                        "\tBytes: %zu\n\tOverwriten byte: %zu\n"
                         "\tPointer: %p\n",
                         mem_info->line, mem_info->file, line, file,
                         (int)mem_info->post_buf[i], (int)p[i], mem_info->bytes,
